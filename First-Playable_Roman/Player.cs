@@ -13,6 +13,7 @@ namespace First_Playable_Roman
         public string Name { get; set; }
         public int Hp { get; private set; }
         public Position _position;
+        private int _speed = 2;
 
         public Player(string name, int hp, int xPos, int yPos)
         {
@@ -43,8 +44,17 @@ namespace First_Playable_Roman
                 playerInputX++;
             }
 
-            _position._xPos += playerInputX;
-            _position._yPos += playerInputY;
+            _position._xPos += playerInputX * _speed;
+            _position._yPos += playerInputY * _speed;
+
+            if (_position._xPos < 0)
+            {
+                _position._xPos = 0;
+            }
+            if (_position._yPos < 0)
+            {
+                _position._yPos = 0;
+            }
         }
 
         public void TakeDamage(int damage)
