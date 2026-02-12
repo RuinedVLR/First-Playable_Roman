@@ -1,14 +1,9 @@
-﻿using System;
-using System.Collections.Generic;
-using System.Drawing;
-using System.Linq;
-using System.Numerics;
-using System.Text;
-using System.Threading.Tasks;
+﻿using Microsoft.Xna.Framework;
+using Microsoft.Xna.Framework.Graphics;
 
 namespace MonoGameLibrary.Graphics
 {
-    internal class Sprite
+    public class Sprite
     {
         /// <summary>
         /// Gets or Sets the source texture region represented by this sprite.
@@ -79,5 +74,36 @@ namespace MonoGameLibrary.Graphics
         /// </remarks>
         public float Height => Region.Height * Scale.Y;
 
+        /// <summary>
+        /// Creates a new sprite.
+        /// </summary>
+        public Sprite() { }
+
+        /// <summary>
+        /// Creates a new sprite using the specified source texture region.
+        /// </summary>
+        /// <param name="region">The texture region to use as the source texture region for this sprite.</param>
+        public Sprite(TextureRegion region)
+        {
+            Region = region;
+        }
+
+        /// <summary>
+        /// Sets the origin of this sprite to the center.
+        /// </summary>
+        public void CenterOrigin()
+        {
+            Origin = new Vector2(Region.Width, Region.Height) * 0.5f;
+        }
+
+        /// <summary>
+        /// Submit this sprite for drawing to the current batch.
+        /// </summary>
+        /// <param name="spriteBatch">The SpriteBatch instance used for batching draw calls.</param>
+        /// <param name="position">The xy-coordinate position to render this sprite at.</param>
+        public void Draw(SpriteBatch spriteBatch, Vector2 position)
+        {
+            Region.Draw(spriteBatch, position, Color, Rotation, Origin, Scale, Effects, LayerDepth);
+        }
     }
 }
