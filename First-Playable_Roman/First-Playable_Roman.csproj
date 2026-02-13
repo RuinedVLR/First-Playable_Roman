@@ -30,6 +30,9 @@
     <ProjectReference Include="..\MonoGameLibrary\MonoGameLibrary.csproj" />
   </ItemGroup>
   <ItemGroup>
+    <None Update="Content\fonts\04B_30.ttf">
+      <CopyToOutputDirectory>Never</CopyToOutputDirectory>
+    </None>
     <None Update="Content\images\tilemap-definition.xml">
       <CopyToOutputDirectory>Never</CopyToOutputDirectory>
     </None>

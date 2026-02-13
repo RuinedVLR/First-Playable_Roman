@@ -36,10 +36,20 @@ namespace First_Playable_Roman
         private bool _needsRoomRecalc;
 
         private SoundEffect _hitSoundEffect;
-
         private SoundEffect _bounceSoundEffect;
-
         private Song _themeSong;
+
+        // The SpriteFont Description used to draw text.
+        private SpriteFont _font;
+
+        // Defines the position to draw the score text at.
+        private Vector2 _healthTextPosition;
+
+        // Defines the origin used when drawing the score text.
+        private Vector2 _healthTextOrigin;
+
+        private enum GameState { Playing, GameOver }
+        private GameState _state = GameState.Playing;
 
         public Game1() : base("TestForNow", 1280, 720, false)
         {
@@ -64,9 +74,20 @@ namespace First_Playable_Roman
 
             AssignRandomSlimeVelocity();
 
-            // Start playing background music.
-            Audio.PlaySong(_themeSong);
-            Audio.SongVolume = 0.3f;
+            // Start playing background music
+            if (_themeSong != null)
+            {
+                Audio.PlaySong(_themeSong);
+                Audio.SongVolume = 0.3f;
+            }
+
+            // Set the position of the score text to align to the left edge of the
+            // room bounds, and to vertically be at the center of the first tile.
+            _healthTextPosition = new Vector2(_roomBounds.Left, _tilemap.TileHeight * 0.5f);
+
+            // Set the origin of the text so it is left-centered.
+            float scoreTextYOrigin = _font.MeasureString("Score").Y * 0.5f;
+            _healthTextOrigin = new Vector2(0, scoreTextYOrigin);
         }
 
         protected override void LoadContent()
@@ -85,7 +106,7 @@ namespace First_Playable_Roman
             _tilemap.Scale = new Vector2(4.0f, 4.0f);
 
             // Try to perform the recalculation now; if GraphicsDevice is not ready, defer it.
-            var gd = GraphicsDevice ?? GraphicsDevice;
+            var gd = GraphicsDevice ?? Core.GraphicsDevice;
             if (gd != null)
             {
                 RecalculateRoomBoundsAndPlaceSlime();
@@ -104,6 +125,9 @@ namespace First_Playable_Roman
 
             // Load the background music
             _themeSong = Content.Load<Song>("audio/backgroundMusic");
+
+            // Load the font
+            _font = Content.Load<SpriteFont>("fonts/04B_30");
         }
 
         private void RecalculateRoomBoundsAndPlaceSlime()
@@ -111,7 +135,7 @@ namespace First_Playable_Roman
             if (_tilemap == null)
                 throw new InvalidOperationException("_tilemap must be initialized before recalculating room bounds.");
 
-            var gd = GraphicsDevice ?? GraphicsDevice;
+            var gd = GraphicsDevice ?? Core.GraphicsDevice;
             if (gd == null)
                 throw new InvalidOperationException("GraphicsDevice not initialized yet.");
 
@@ -140,7 +164,7 @@ namespace First_Playable_Roman
             _slimePosition = new Vector2(slimeCx - slimeHalfW, slimeCy - slimeHalfH);
 
             // Clamp player into the playable area.
-            if (_playerSprite != null)
+            if (_playerSprite != null && _player != null)
             {
                 int maxX = Math.Max(_roomBounds.Left, _roomBounds.Right - (int)_playerSprite.Width);
                 int maxY = Math.Max(_roomBounds.Top, _roomBounds.Bottom - (int)_playerSprite.Height);
@@ -151,10 +175,13 @@ namespace First_Playable_Roman
 
         protected override void Update(GameTime gameTime)
         {
+            // Ensure core / input state is updated before we inspect input.
+            base.Update(gameTime);
+
             // If we deferred room recalculation because GraphicsDevice wasn't ready, do it now.
             if (_needsRoomRecalc)
             {
-                var gd = GraphicsDevice ?? GraphicsDevice;
+                var gd = GraphicsDevice ?? Core.GraphicsDevice;
                 if (gd != null && _tilemap != null)
                 {
                     RecalculateRoomBoundsAndPlaceSlime();
@@ -162,21 +189,38 @@ namespace First_Playable_Roman
                 }
             }
 
+            // If game over, allow restart and skip gameplay updates
+            if (_state == GameState.GameOver)
+            {
+                if (Input.Keyboard.WasKeyJustPressed(Keys.R))
+                {
+                    Restart();
+                }
+                return;
+            }
+
+            if (_player != null && _player.Health.CurrentHealth <= 0)
+            {
+                GameOver();
+                return;
+            }
+
             if (GamePad.GetState(PlayerIndex.One).Buttons.Back == ButtonState.Pressed || Keyboard.GetState().IsKeyDown(Keys.Escape))
                 Exit();
 
-            _playerSprite.Update(gameTime);
-            _slimeSprite.Update(gameTime);
+            _playerSprite?.Update(gameTime);
+            _slimeSprite?.Update(gameTime);
 
             PlayerInput();
-            _playerPosition = new Vector2(_player._position._xPos, _player._position._yPos);
+            if (_player != null)
+                _playerPosition = new Vector2(_player._position._xPos, _player._position._yPos);
 
             // Calculate the new position of the slime based on the velocity.
             Vector2 newSlimePosition = _slimePosition + _slimeVelocity;
 
             // Use float centers / radius to avoid truncation-induced repeated collisions
-            float slimeHalfW2 = _slimeSprite.Width * 0.5f;
-            float slimeHalfH2 = _slimeSprite.Height * 0.5f;
+            float slimeHalfW2 = _slimeSprite?.Width * 0.5f ?? 0f;
+            float slimeHalfH2 = _slimeSprite?.Height * 0.5f ?? 0f;
 
             // Center coordinates of the slime (float)
             float centerX = newSlimePosition.X + slimeHalfW2;
@@ -223,7 +267,8 @@ namespace First_Playable_Roman
                 _slimeVelocity = Vector2.Reflect(_slimeVelocity, normal);
 
                 // Play bounce sound effect on collision with room bounds
-                Audio.PlaySoundEffect(_bounceSoundEffect);
+                if (_bounceSoundEffect != null)
+                    Audio.PlaySoundEffect(_bounceSoundEffect);
             }
 
             _slimePosition = newSlimePosition;
@@ -262,10 +307,9 @@ namespace First_Playable_Roman
                 AssignRandomSlimeVelocity();
 
                 // Play hit sound effect on player damage
-                Audio.PlaySoundEffect(_hitSoundEffect);
+                if (_hitSoundEffect != null)
+                    Audio.PlaySoundEffect(_hitSoundEffect);
             }
-
-            base.Update(gameTime);
         }
 
         private void AssignRandomSlimeVelocity()
@@ -291,11 +335,45 @@ namespace First_Playable_Roman
             SpriteBatch.Begin(samplerState: SamplerState.PointClamp);
 
             // Draw the tilemap.
-            _tilemap.Draw(SpriteBatch);
+            _tilemap?.Draw(SpriteBatch);
 
-            _playerSprite.Draw(SpriteBatch, _playerPosition);
-            // Draw the slime sprite.
-            _slimeSprite.Draw(SpriteBatch, _slimePosition);
+            _slimeSprite?.Draw(SpriteBatch, _slimePosition);
+
+            // Draw player only when present and playing
+            if (_state == GameState.Playing && _playerSprite != null)
+            {
+                _playerSprite.Draw(SpriteBatch, _playerPosition);
+
+                // Draw the score
+                SpriteBatch.DrawString(
+                    _font,              // spriteFont
+                    $"Health: {_player.Health.CurrentHealth}", // text
+                    _healthTextPosition, // position
+                    Color.White,        // color
+                    0.0f,               // rotation
+                    _healthTextOrigin,   // origin
+                    1.5f,               // scale
+                    SpriteEffects.None, // effects
+                    0.0f                // layerDepth
+                );
+            }
+            else if (_state == GameState.GameOver)
+            {
+                // Provide a visual hint via window title (no SpriteFont assumed).
+                Window.Title = "Game Over - press R to restart";
+
+                SpriteBatch.DrawString(
+                    _font,
+                    "Game Over - press R to restart",
+                    new Vector2(GraphicsDevice.Viewport.Width * 0.5f, GraphicsDevice.Viewport.Height * 0.3f),
+                    Color.Gold,
+                    0.0f,
+                    _font.MeasureString("Game Over - press R to restart") * 0.5f,
+                    1.0f,
+                    SpriteEffects.None,
+                    0.0f
+                );
+            }
 
             SpriteBatch.End();
 
@@ -304,6 +382,10 @@ namespace First_Playable_Roman
 
         public void PlayerInput()
         {
+            // Skip player input when game over or player missing.
+            if (_state == GameState.GameOver || _player == null || _playerSprite == null)
+                return;
+
             int playerInputX = 0;
             int playerInputY = 0;
 
@@ -355,9 +437,50 @@ namespace First_Playable_Roman
             }
         }
 
-        public void GameOver()
+        private void GameOver()
         {
-            
+            if (_state == GameState.GameOver) return;
+
+            // Switch state
+            _state = GameState.GameOver;
+
+            // Stop music
+            Audio.PauseAudio();
+
+            // Clear player references so player is effectively "deleted"
+            _player = null;
+            _playerSprite = null;
+
+            // Optionally freeze slime
+            _slimeVelocity = Vector2.Zero;
+
+            // Update window title for a quick visual hint (replace with UI text if you have a font)
+            Window.Title = "Game Over - press R to restart";
+
+            // Play hit sound (optional)
+            if (_hitSoundEffect != null)
+                Audio.PlaySoundEffect(_hitSoundEffect);
+        }
+
+        private void Restart()
+        {
+            // Recreate basic player and sprites from content (simple restart).
+            TextureAtlas atlas = TextureAtlas.FromFile(Content, "images/atlas-definition.xml");
+            _playerSprite = atlas.CreateAnimatedSprite("Player-animation");
+            _slimeSprite = atlas.CreateAnimatedSprite("Slime-animation");
+
+            _player = new Player("Player", 100, 565, 0);
+            _slime = new Enemy(100, 100, 5);
+
+            _slimePosition = new Vector2(_slime._position._xPos, _slime._position._yPos);
+            AssignRandomSlimeVelocity();
+
+            _state = GameState.Playing;
+
+            // Restore window title and restart music
+            Window.Title = "TestForNow";
+            if (_themeSong != null)
+                Audio.PlaySong(_themeSong);
         }
     }
 }

@@ -9,27 +9,25 @@ namespace First_Playable_Roman
     internal class Player
     {
         public string Name { get; set; }
-        public int Hp { get; private set; }
+        public Health Health { get; private set; }
         public Position _position;
         public int _speed = 2;
-        
-
-        public Player(string name, int hp, int xPos, int yPos)
-        {
-            Hp = hp;
-            Name = name;
-            _position = new Position { _xPos = xPos, _yPos = yPos };
-        }
 
         public void TakeDamage(int damage)
         {
-            Hp -= damage;
+            Health.TakeDamage(damage);
+        }
 
-            if(Hp < 0)
-            {
-                Hp = 0;
+        public void Attack(Enemy enemy)
+        {
+            enemy.TakeDamage(Health.CurrentHealth);
+        }
 
-            }
+        public Player(string name, int hp, int xPos, int yPos)
+        {
+            Name = name;
+            Health = new Health(hp);
+            _position = new Position { _xPos = xPos, _yPos = yPos };
         }
     }
 }
