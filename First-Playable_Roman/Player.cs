@@ -24,7 +24,12 @@ namespace First_Playable_Roman
         public void TakeDamage(int damage)
         {
             Hp -= damage;
-        }
 
+            if(Hp < 0)
+            {
+                Hp = 0;
+
+            }
+        }
     }
 }

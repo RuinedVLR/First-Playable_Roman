@@ -4,6 +4,7 @@ using Microsoft.Xna.Framework;
 using System;
 using Microsoft.Xna.Framework.Input;
 using MonoGameLibrary.Input;
+using MonoGameLibrary.Audio;
 
 namespace MonoGameLibrary
 {
@@ -45,6 +46,8 @@ namespace MonoGameLibrary
         /// Gets or Sets a value that indicates if the game should exit when the esc key on the keyboard is pressed.
         /// </summary>
         public static bool ExitOnEscape { get; set; }
+
+        public static AudioController Audio { get; private set; }
 
         /// <summary>
         /// New Core Instance
@@ -102,12 +105,26 @@ namespace MonoGameLibrary
 
             // Create a new input manager.
             Input = new InputManager();
+
+            // Create a new audio controller.
+            Audio = new AudioController();
+        }
+
+        protected override void UnloadContent()
+        {
+            // Dispose of the audio controller.
+            Audio.Dispose();
+
+            base.UnloadContent();
         }
 
         protected override void Update(GameTime gameTime)
         {
             // Update the input manager.
             Input.Update(gameTime);
+
+            // Update the audio controller.
+            Audio.Update();
 
             if (ExitOnEscape && Input.Keyboard.IsKeyDown(Keys.Escape))
             {

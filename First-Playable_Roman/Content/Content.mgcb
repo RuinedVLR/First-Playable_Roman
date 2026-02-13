@@ -13,6 +13,24 @@
 
 #---------------------------------- Content ---------------------------------#
 
+#begin audio/backgroundMusic.mp3
+/importer:Mp3Importer
+/processor:SongProcessor
+/processorParam:Quality=Best
+/build:audio/backgroundMusic.mp3
+
+#begin audio/bounceSoundEffect.wav
+/importer:WavImporter
+/processor:SoundEffectProcessor
+/processorParam:Quality=Best
+/build:audio/bounceSoundEffect.wav
+
+#begin audio/pixelhitsound.wav
+/importer:WavImporter
+/processor:SoundEffectProcessor
+/processorParam:Quality=Best
+/build:audio/pixelhitsound.wav
+
 #begin images/atlas-definition.xml
 /copy:images/atlas-definition.xml
 

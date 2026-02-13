@@ -1,6 +1,8 @@
 ﻿using Microsoft.Xna.Framework;
 using Microsoft.Xna.Framework.Graphics;
 using Microsoft.Xna.Framework.Input;
+using Microsoft.Xna.Framework.Audio;
+using Microsoft.Xna.Framework.Media;
 using System;
 using MonoGameLibrary;
 using MonoGameLibrary.Graphics;
@@ -11,12 +13,12 @@ namespace First_Playable_Roman
     public class Game1 : Core
     {
         private AnimatedSprite _playerSprite;
-        private AnimatedSprite _slime;
+        private AnimatedSprite _slimeSprite;
 
         private Player _player;
         private Vector2 _playerPosition;
 
-        private const float MOVEMENT_SPEED = 5.0f;
+        private Enemy _slime;
 
         // Tracks the position of the slime.
         private Vector2 _slimePosition;
@@ -33,9 +35,16 @@ namespace First_Playable_Roman
         // If GraphicsDevice wasn't ready in LoadContent, defer recalc to Update.
         private bool _needsRoomRecalc;
 
+        private SoundEffect _hitSoundEffect;
+
+        private SoundEffect _bounceSoundEffect;
+
+        private Song _themeSong;
+
         public Game1() : base("TestForNow", 1280, 720, false)
         {
-            _player = new Player("Player", 100, 588, 4);
+            _player = new Player("Player", 100, 0, 0);
+            _slime = new Enemy(0, 0, 0);
         }
 
         protected override void Initialize()
@@ -47,15 +56,17 @@ namespace First_Playable_Roman
             // Do not compute room bounds here: tilemap and scale are created in LoadContent.
             // Read player name and set default positions that don't depend on tilemap.
             string nameInput = Console.ReadLine();
-            _player = new Player(nameInput, 100, 588, 4);
+            _player = new Player(nameInput, 100, 565, 0);
+            _slime = new Enemy(100, 100, 5);
 
             // Default slime position until LoadContent sets the room and initial placement.
-            _slimePosition = new Vector2(100, 100);
+            _slimePosition = new Vector2(_slime._position._xPos, _slime._position._yPos);
 
             AssignRandomSlimeVelocity();
 
-            // Removed direct RecalculateRoomBoundsAndPlaceSlime() call from Initialize.
-            // It must run after LoadContent has created and scaled the tilemap.
+            // Start playing background music.
+            Audio.PlaySong(_themeSong);
+            Audio.SongVolume = 0.3f;
         }
 
         protected override void LoadContent()
@@ -65,7 +76,7 @@ namespace First_Playable_Roman
             TextureAtlas atlas = TextureAtlas.FromFile(Content, "images/atlas-definition.xml");
 
             _playerSprite = atlas.CreateAnimatedSprite("Player-animation");
-            _slime = atlas.CreateAnimatedSprite("Slime-animation");
+            _slimeSprite = atlas.CreateAnimatedSprite("Slime-animation");
 
             // Create the tilemap from the XML configuration file.
             _tilemap = Tilemap.FromFile(Content, "images/tilemap-definition.xml");
@@ -74,7 +85,7 @@ namespace First_Playable_Roman
             _tilemap.Scale = new Vector2(4.0f, 4.0f);
 
             // Try to perform the recalculation now; if GraphicsDevice is not ready, defer it.
-            var gd = GraphicsDevice ?? Core.GraphicsDevice;
+            var gd = GraphicsDevice ?? GraphicsDevice;
             if (gd != null)
             {
                 RecalculateRoomBoundsAndPlaceSlime();
@@ -84,6 +95,15 @@ namespace First_Playable_Roman
             {
                 _needsRoomRecalc = true;
             }
+
+            // Load the bounce sound effect
+            _bounceSoundEffect = Content.Load<SoundEffect>("audio/bounceSoundEffect");
+
+            // Load the collect sound effect
+            _hitSoundEffect = Content.Load<SoundEffect>("audio/pixelhitsound");
+
+            // Load the background music
+            _themeSong = Content.Load<Song>("audio/backgroundMusic");
         }
 
         private void RecalculateRoomBoundsAndPlaceSlime()
@@ -91,37 +111,42 @@ namespace First_Playable_Roman
             if (_tilemap == null)
                 throw new InvalidOperationException("_tilemap must be initialized before recalculating room bounds.");
 
-            var gd = GraphicsDevice ?? Core.GraphicsDevice;
+            var gd = GraphicsDevice ?? GraphicsDevice;
             if (gd == null)
                 throw new InvalidOperationException("GraphicsDevice not initialized yet.");
 
-            // Scaled tile size in pixels (ensure at least 1)
-            int tileWScaled = (int)Math.Max(1, _tilemap.TileWidth * _tilemap.Scale.X);
-            int tileHScaled = (int)Math.Max(1, _tilemap.TileHeight * _tilemap.Scale.Y);
+            // Scaled tile size in pixels (rounded to avoid truncation errors)
+            int tileWScaled = (int)Math.Max(1, Math.Round(_tilemap.TileWidth));
+            int tileHScaled = (int)Math.Max(1, Math.Round(_tilemap.TileHeight));
 
-            int screenW = gd.PresentationParameters.BackBufferWidth;
-            int screenH = gd.PresentationParameters.BackBufferHeight;
+            // Map size in pixels based on tilemap columns/rows and scaled tile size.
+            int mapPixelWidth = _tilemap.Columns * tileWScaled;
+            int mapPixelHeight = _tilemap.Rows * tileHScaled;
 
-            // Diagnostic output - paste these lines if you still see issues
-            Console.WriteLine($"[RoomRecalc] tileWScaled={tileWScaled}, tileHScaled={tileHScaled}, screenW={screenW}, screenH={screenH}");
-
-            // Guarantee exactly one scaled-tile margin on each side.
+            // Make exactly one tile on each edge non-passable.
+            // Playable area is the map inset by one tile from each side.
             int roomX = tileWScaled;
             int roomY = tileHScaled;
-            int roomWidth = Math.Max(0, screenW - tileWScaled * 2);
-            int roomHeight = Math.Max(0, screenH - tileHScaled * 2);
-
-            Console.WriteLine($"[RoomRecalc] roomX={roomX}, roomY={roomY}, roomWidth={roomWidth}, roomHeight={roomHeight}");
+            int roomWidth = Math.Max(0, mapPixelWidth - tileWScaled * 2);
+            int roomHeight = Math.Max(0, mapPixelHeight - tileHScaled * 2);
 
             _roomBounds = new Rectangle(roomX, roomY, roomWidth, roomHeight);
 
-            // Place slime in the visual center of the room (pixel-center).
-            // Uses the slime sprite size to center its top-left position so the sprite is centered visually.
+            // Place slime in the visual center of the playable area.
             float slimeCx = roomX + roomWidth * 0.5f;
             float slimeCy = roomY + roomHeight * 0.5f;
-            float slimeHalfW = _slime?.Width * 0.5f ?? 0f;
-            float slimeHalfH = _slime?.Height * 0.5f ?? 0f;
+            float slimeHalfW = _slimeSprite?.Width * 0.5f ?? 0f;
+            float slimeHalfH = _slimeSprite?.Height * 0.5f ?? 0f;
             _slimePosition = new Vector2(slimeCx - slimeHalfW, slimeCy - slimeHalfH);
+
+            // Clamp player into the playable area.
+            if (_playerSprite != null)
+            {
+                int maxX = Math.Max(_roomBounds.Left, _roomBounds.Right - (int)_playerSprite.Width);
+                int maxY = Math.Max(_roomBounds.Top, _roomBounds.Bottom - (int)_playerSprite.Height);
+                _player._position._xPos = Math.Clamp(_player._position._xPos, _roomBounds.Left, maxX);
+                _player._position._yPos = Math.Clamp(_player._position._yPos, _roomBounds.Top, maxY);
+            }
         }
 
         protected override void Update(GameTime gameTime)
@@ -129,7 +154,7 @@ namespace First_Playable_Roman
             // If we deferred room recalculation because GraphicsDevice wasn't ready, do it now.
             if (_needsRoomRecalc)
             {
-                var gd = GraphicsDevice ?? Core.GraphicsDevice;
+                var gd = GraphicsDevice ?? GraphicsDevice;
                 if (gd != null && _tilemap != null)
                 {
                     RecalculateRoomBoundsAndPlaceSlime();
@@ -141,7 +166,7 @@ namespace First_Playable_Roman
                 Exit();
 
             _playerSprite.Update(gameTime);
-            _slime.Update(gameTime);
+            _slimeSprite.Update(gameTime);
 
             PlayerInput();
             _playerPosition = new Vector2(_player._position._xPos, _player._position._yPos);
@@ -150,8 +175,8 @@ namespace First_Playable_Roman
             Vector2 newSlimePosition = _slimePosition + _slimeVelocity;
 
             // Use float centers / radius to avoid truncation-induced repeated collisions
-            float slimeHalfW2 = _slime.Width * 0.5f;
-            float slimeHalfH2 = _slime.Height * 0.5f;
+            float slimeHalfW2 = _slimeSprite.Width * 0.5f;
+            float slimeHalfH2 = _slimeSprite.Height * 0.5f;
 
             // Center coordinates of the slime (float)
             float centerX = newSlimePosition.X + slimeHalfW2;
@@ -196,6 +221,9 @@ namespace First_Playable_Roman
             {
                 normal.Normalize();
                 _slimeVelocity = Vector2.Reflect(_slimeVelocity, normal);
+
+                // Play bounce sound effect on collision with room bounds
+                Audio.PlaySoundEffect(_bounceSoundEffect);
             }
 
             _slimePosition = newSlimePosition;
@@ -216,15 +244,25 @@ namespace First_Playable_Roman
 
             if (playerBounds.Intersects(slimeBounds))
             {
-                int totalColumns = GraphicsDevice.PresentationParameters.BackBufferWidth / (int)_slime.Width;
-                int totalRows = GraphicsDevice.PresentationParameters.BackBufferHeight / (int)_slime.Height;
+                _player.TakeDamage(10);
+                
+                // Respawn slime inside playable area leaving exactly one tile margin on each edge.
+                int tileWScaled = (int)Math.Max(1, Math.Round(_tilemap.TileWidth));
+                int tileHScaled = (int)Math.Max(1, Math.Round(_tilemap.TileHeight));
 
-                int column = Random.Shared.Next(0, totalColumns);
-                int row = Random.Shared.Next(0, totalRows);
+                int innerCols = Math.Max(1, _tilemap.Columns - 2);
+                int innerRows = Math.Max(1, _tilemap.Rows - 2);
 
-                _slimePosition = new Vector2(column * _slime.Width, row * _slime.Height);
+                int column = Random.Shared.Next(0, innerCols);
+                int row = Random.Shared.Next(0, innerRows);
+
+                // Position on tile grid inside playable area (roomX + column * tileWScaled)
+                _slimePosition = new Vector2(_roomBounds.Left + column * tileWScaled, _roomBounds.Top + row * tileHScaled);
 
                 AssignRandomSlimeVelocity();
+
+                // Play hit sound effect on player damage
+                Audio.PlaySoundEffect(_hitSoundEffect);
             }
 
             base.Update(gameTime);
@@ -241,7 +279,7 @@ namespace First_Playable_Roman
             Vector2 direction = new Vector2(x, y);
 
             // Multiply the direction vector by the movement speed.
-            _slimeVelocity = direction * MOVEMENT_SPEED;
+            _slimeVelocity = direction * _slime._speed;
         }
 
         protected override void Draw(GameTime gameTime)
@@ -257,7 +295,7 @@ namespace First_Playable_Roman
 
             _playerSprite.Draw(SpriteBatch, _playerPosition);
             // Draw the slime sprite.
-            _slime.Draw(SpriteBatch, _slimePosition);
+            _slimeSprite.Draw(SpriteBatch, _slimePosition);
 
             SpriteBatch.End();
 
@@ -287,7 +325,7 @@ namespace First_Playable_Roman
             _player._position._xPos += playerInputX * _player._speed;
             _player._position._yPos += playerInputY * _player._speed;
 
-            // Clamp using room bounds so continuous input won't cause jitter
+            // Clamp using playable room bounds so continuous input won't cause jitter.
             int minX = _roomBounds.Left;
             int minY = _roomBounds.Top;
             int maxX = _roomBounds.Right - (int)_playerSprite.Width;
@@ -295,6 +333,31 @@ namespace First_Playable_Roman
 
             _player._position._xPos = Math.Clamp(_player._position._xPos, minX, Math.Max(minX, maxX));
             _player._position._yPos = Math.Clamp(_player._position._yPos, minY, Math.Max(minY, maxY));
+
+            // If the M key is pressed, toggle mute state for audio.
+            if (Input.Keyboard.WasKeyJustPressed(Keys.M))
+            {
+                Audio.ToggleMute();
+            }
+
+            // If the + button is pressed, increase the volume.
+            if (Input.Keyboard.WasKeyJustPressed(Keys.OemPlus))
+            {
+                Audio.SongVolume += 0.1f;
+                Audio.SoundEffectVolume += 0.1f;
+            }
+
+            // If the - button was pressed, decrease the volume.
+            if (Input.Keyboard.WasKeyJustPressed(Keys.OemMinus))
+            {
+                Audio.SongVolume -= 0.1f;
+                Audio.SoundEffectVolume -= 0.1f;
+            }
+        }
+
+        public void GameOver()
+        {
+            
         }
     }
 }
