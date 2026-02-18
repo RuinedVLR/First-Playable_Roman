@@ -31,7 +31,7 @@
   </ItemGroup>
   <ItemGroup>
     <None Update="Content\fonts\04B_30.ttf">
-      <CopyToOutputDirectory>Never</CopyToOutputDirectory>
+      <CopyToOutputDirectory>PreserveNewest</CopyToOutputDirectory>
     </None>
     <None Update="Content\images\tilemap-definition.xml">
       <CopyToOutputDirectory>Never</CopyToOutputDirectory>
