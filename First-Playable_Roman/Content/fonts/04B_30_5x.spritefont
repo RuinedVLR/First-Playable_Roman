@@ -52,13 +52,16 @@ with.
     For localized fonts you can leave this empty as the character range will be picked up
     from the Resource Files.
     -->
-    <CharacterRegions>
-      <CharacterRegion>
-        <Start>&#32;</Start>
-        <End>&#32;</End>
-      </CharacterRegion>
-    </CharacterRegions>
-    <!--
+
+	  <DefaultCharacter>?</DefaultCharacter>
+
+	  <CharacterRegions>
+		  <CharacterRegion>
+			  <Start>&#32;</Start>
+			  <End>&#126;</End>
+		  </CharacterRegion>
+	  </CharacterRegions>
+		  <!--
     ResourceFiles control the characters which will be in the font. It does this
     by scanning the text in each of the resource files and adding those specific
     characters to the font. 

@@ -175,8 +175,17 @@ namespace First_Playable_Roman.Scenes
             // Ensure core / input state is updated before we inspect input.
             base.Update(gameTime);
 
-            _playerSprite.Update(gameTime);
-            _slimeSprite.Update(gameTime);
+            if (_state == GameState.Playing)
+            {
+                Core.Instance.Window.Title = "Test for now";
+            }
+            else if (_state == GameState.GameOver)
+            {
+                Core.Instance.Window.Title = "Press R to Restart";
+            }
+
+            _playerSprite?.Update(gameTime);
+            _slimeSprite?.Update(gameTime);
 
             // If we deferred room recalculation because GraphicsDevice wasn't ready, do it now.
             if (_needsRoomRecalc)

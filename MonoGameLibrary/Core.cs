@@ -189,5 +189,15 @@ namespace MonoGameLibrary
                 s_activeScene.Initialize();
             }
         }
+
+        protected override void Draw(GameTime gameTime)
+        {
+            if (s_activeScene != null)
+            {
+                s_activeScene.Draw(gameTime);
+            }
+            
+            base.Draw(gameTime);
+        }
     }
 }
