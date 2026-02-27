@@ -15,7 +15,7 @@ namespace First_Playable_Roman
 
         public void TakeDamage(int damage)
         {
-            Health.TakeDamage(damage);
+            Health.TakeDamage(-damage);
         }
 
         public void Attack(Enemy enemy)

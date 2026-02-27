@@ -91,7 +91,7 @@ namespace First_Playable_Roman.Scenes
             float scoreTextYOrigin = _font.MeasureString("Score").Y * 0.5f;
             _healthTextOrigin = new Vector2(0, scoreTextYOrigin);
 
-            AssignRandomSlimeVelocity();
+            //AssignRandomSlimeVelocity();
         }
 
         public override void LoadContent()
@@ -219,6 +219,7 @@ namespace First_Playable_Roman.Scenes
             
 
             PlayerInput();
+
             if (_player != null)
                 _playerPosition = new Vector2(_player._position._xPos, _player._position._yPos);
 
@@ -311,8 +312,6 @@ namespace First_Playable_Roman.Scenes
                 // Position on tile grid inside playable area (roomX + column * tileWScaled)
                 _slimePosition = new Vector2(_roomBounds.Left + column * tileWScaled, _roomBounds.Top + row * tileHScaled);
 
-                AssignRandomSlimeVelocity();
-
                 // Play hit sound effect on player damage
                 if (_hitSoundEffect != null)
                     Core.Audio.PlaySoundEffect(_hitSoundEffect);
@@ -404,10 +403,10 @@ namespace First_Playable_Roman.Scenes
                 _player._speed = 2;
             }
 
-            if (keyboard.IsKeyDown(Keys.W) || keyboard.IsKeyDown(Keys.Up)) playerInputY--;
-            if (keyboard.IsKeyDown(Keys.S) || keyboard.IsKeyDown(Keys.Down)) playerInputY++;
-            if (keyboard.IsKeyDown(Keys.A) || keyboard.IsKeyDown(Keys.Left)) playerInputX--;
-            if (keyboard.IsKeyDown(Keys.D) || keyboard.IsKeyDown(Keys.Right)) playerInputX++;
+            if (keyboard.IsKeyDown(Keys.D) || keyboard.IsKeyDown(Keys.Up)) playerInputY--;
+            if (keyboard.IsKeyDown(Keys.W) || keyboard.IsKeyDown(Keys.Down)) playerInputY++;
+            if (keyboard.IsKeyDown(Keys.S) || keyboard.IsKeyDown(Keys.Left)) playerInputX--;
+            if (keyboard.IsKeyDown(Keys.A) || keyboard.IsKeyDown(Keys.Right)) playerInputX++;
 
             // Apply input to position
             _player._position._xPos += playerInputX * _player._speed;
