@@ -4,7 +4,7 @@ using System.Linq;
 using System.Text;
 using System.Threading.Tasks;
 
-namespace First_Playable_Roman
+namespace First_Playable_Roman.Scripts
 {
     internal class Health
     {

@@ -3,15 +3,13 @@ using Microsoft.Xna.Framework.Input;
 using System;
 using MonoGameLibrary.Input;
 using MonoGameLibrary;
+using First_Playable_Roman.Scripts;
 
-namespace First_Playable_Roman
+namespace First_Playable_Roman.Scripts
 {
-    internal class Player
+    internal class Player : Entity
     {
         public string Name { get; set; }
-        public Health Health { get; private set; }
-        public Position _position;
-        public int _speed = 2;
 
         public void TakeDamage(int damage)
         {
@@ -23,11 +21,9 @@ namespace First_Playable_Roman
             enemy.TakeDamage(Health.CurrentHealth);
         }
 
-        public Player(string name, int hp, int xPos, int yPos)
+        public Player(string name, int hp, int xPos, int yPos, int speed) : base(hp, xPos, yPos, speed)
         {
             Name = name;
-            Health = new Health(hp);
-            _position = new Position { _xPos = xPos, _yPos = yPos };
         }
     }
 }

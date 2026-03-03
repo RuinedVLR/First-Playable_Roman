@@ -2,7 +2,7 @@
 using Microsoft.Xna.Framework.Media;
 using MonoGameLibrary;
 
-namespace First_Playable_Roman
+namespace First_Playable_Roman.Scripts
 {
     public class Game1 : Core
     {

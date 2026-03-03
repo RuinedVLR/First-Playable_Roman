@@ -4,7 +4,7 @@ using System.Linq;
 using System.Text;
 using System.Threading.Tasks;
 
-namespace First_Playable_Roman
+namespace Scripts
 {
     internal class Position
     {
