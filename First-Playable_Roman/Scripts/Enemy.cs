@@ -9,6 +9,8 @@ namespace First_Playable_Roman.Scripts
 {
     internal class Enemy : Entity
     {
+        public int Speed { get; set; }
+
         public void TakeDamage(int damage)
         {
             Health.TakeDamage(damage);
@@ -19,9 +21,9 @@ namespace First_Playable_Roman.Scripts
             player.TakeDamage(Health.CurrentHealth);
         }
 
-        public Enemy(int maxHp, int xPos, int yPos) : base(maxHp, xPos, yPos)
+        public Enemy(int maxHp, int xPos, int yPos, int speed) : base(maxHp, xPos, yPos)
         {
-            
+            Speed = speed;
         }
     }
 }

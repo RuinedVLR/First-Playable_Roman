@@ -23,6 +23,18 @@ namespace First_Playable_Roman.Scripts
             }
         }
 
+        public void Heal(int hp)
+        {
+            if (hp < 0)
+                return;
+
+            CurrentHealth += hp;
+            if (CurrentHealth > MaxHealth)
+            {
+                CurrentHealth = MaxHealth;
+            }
+        }
+
         public Health(int maxHealth)
         {
             if (maxHealth <= 0)

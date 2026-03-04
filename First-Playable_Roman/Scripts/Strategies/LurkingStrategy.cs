@@ -8,11 +8,9 @@ namespace First_Playable_Roman.Scripts.Strategies
 {
     internal class LurkingStrategy : Enemy
     {
-        public int Speed { get; private set; }
 
-        public LurkingStrategy(int maxHp, int xPos, int yPos, int speed) : base(maxHp, xPos, yPos)
+        public LurkingStrategy(int maxHp, int xPos, int yPos, int speed) : base(maxHp, xPos, yPos, speed)
         {
-            Speed = speed;
         }
     }
 }

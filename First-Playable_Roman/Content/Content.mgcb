@@ -72,7 +72,7 @@
 /processorParam:TextureFormat=Color
 /build:images/background-pattern.png
 
-#begin images/heart.jpg
+#begin images/heart.png
 /importer:TextureImporter
 /processor:TextureProcessor
 /processorParam:ColorKeyColor=255,0,255,255
@@ -82,7 +82,7 @@
 /processorParam:ResizeToPowerOfTwo=False
 /processorParam:MakeSquare=False
 /processorParam:TextureFormat=Color
-/build:images/heart.jpg
+/build:images/heart.png
 
 #begin images/key.png
 /importer:TextureImporter

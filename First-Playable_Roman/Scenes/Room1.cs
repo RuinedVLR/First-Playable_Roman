@@ -26,17 +26,12 @@ namespace First_Playable_Roman.Scenes
         private Sprite _heartSprite;
         private Sprite _keySprite;
 
-        private Vector2[] _knifePositions = 
-        { 
-            new Vector2(100, 100),
-            new Vector2(500, 500)
-        };
-        private Vector2[] _heartPositions =
-        {
-            new Vector2(500, 100),
-            new Vector2(100, 500)
-        };
-        private Vector2 _keyPosition = new Vector2(800, 800);
+        private List<Vector2> _knifePositions;
+
+        private List<Vector2> _heartPositions;
+        private Vector2 _keyPosition;
+
+        private bool hasKnife;
 
         private Player _player;
         private Vector2 _playerPosition;
@@ -66,11 +61,17 @@ namespace First_Playable_Roman.Scenes
         // The SpriteFont Description used to draw text.
         private SpriteFont _font;
 
-        // Defines the position to draw the score text at.
+        // Defines the position to draw the health text at.
         private Vector2 _healthTextPosition;
 
-        // Defines the origin used when drawing the score text.
+        // Defines the origin used when drawing the health text.
         private Vector2 _healthTextOrigin;
+
+        private int _score;
+
+        private Vector2 _scoreTextPosition;
+
+        private Vector2 _scoreTextOrigin;
 
         private Timer _shootTimer;
 
@@ -83,46 +84,7 @@ namespace First_Playable_Roman.Scenes
 
             base.Initialize();
 
-            Core.ExitOnEscape = false;
-
-            Rectangle screenBounds = Core.Bounds;
-
-            _roomBounds = new Rectangle(
-                (int)_tilemap.TileWidth,
-                (int)_tilemap.TileHeight,
-                (int)(_tilemap.TileWidth * _tilemap.Columns - _tilemap.TileWidth * 2),
-                (int)(_tilemap.TileHeight * _tilemap.Rows - _tilemap.TileHeight * 2)
-             );
-
-            // Do not compute room bounds here: tilemap and scale are created in LoadContent.
-            // Read player name and set default positions that don't depend on tilemap.
-            string nameInput = Console.ReadLine();
-            _player = new Player(nameInput, 100, 565, 0, 10);
-            _enemies = new List<Enemy>
-            {
-                new LurkingStrategy(10, 100, 5, 5),
-                new LurkingStrategy(10, 100, 5, 5),
-                //new TurretStrategy(10, 100, 500, 4)
-            };
-            _slimePositions = new List<Vector2>();
-            _slimeVelocity = new List<Vector2>();
-
-            for (int i = 0; i < _enemies.Count; i++)
-            {
-                _slimePositions.Add(new Vector2(_enemies[i]._position._xPos, _enemies[i]._position._yPos));
-                if(_enemies[i] is LurkingStrategy)
-                    AssignRandomSlimeVelocity(i);
-            }
-
-            _shootTimer = new Timer(AllTurretShoot, null, 0, 5);
-
-            // Set the position of the score text to align to the left edge of the
-            // room bounds, and to vertically be at the center of the first tile.
-            _healthTextPosition = new Vector2(_roomBounds.Left, _tilemap.TileHeight * 0.5f);
-
-            // Set the origin of the text so it is left-centered.
-            float scoreTextYOrigin = _font.MeasureString("Score").Y * 0.5f;
-            _healthTextOrigin = new Vector2(0, scoreTextYOrigin);
+            Restart();
         }
 
         public override void LoadContent()
@@ -135,8 +97,11 @@ namespace First_Playable_Roman.Scenes
             _slimeSprite = atlas.CreateAnimatedSprite("Slime-animation");
 
             _knifeSprite = atlas.CreateSprite("Knife");
-            _heartSprite = Content.Load<Sprite>("images/heart");
-            _keySprite = Content.Load<Sprite>("images/key");
+            _knifeSprite.Scale = new Vector2(0.2f, 0.15f);
+            _heartSprite = atlas.CreateSprite("Heart");
+            _heartSprite.Scale = new Vector2(0.2f, 0.2f);
+            _keySprite = atlas.CreateSprite("Key");
+            _keySprite.Scale = new Vector2(0.2f, 0.2f);
 
             // Create the tilemap from the XML configuration file.
             _tilemap = Tilemap.FromFile(Content, "images/tilemap-definition.xml");
@@ -196,6 +161,76 @@ namespace First_Playable_Roman.Scenes
             PlayerInput();
             if (_player != null)
                 _playerPosition = new Vector2(_player._position._xPos, _player._position._yPos);
+
+            // player circle
+            Circle playerBounds = new Circle(
+                (int)(_playerPosition.X + (_playerSprite.Width * 0.5f)),
+                (int)(_playerPosition.Y + (_playerSprite.Height * 0.5f)),
+                (int)(_playerSprite.Width * 0.5f)
+            );
+
+            if (!hasKnife) // check if already has a knife
+            {
+                for (int i = 0; i < _knifePositions.Count; i++)
+                {
+                    Vector2 knifePos = _knifePositions[i];
+
+                    Circle knifeBounds = new Circle(
+                        (int)(knifePos.X + _knifeSprite.Width * 0.5f),
+                        (int)(knifePos.Y + _knifeSprite.Height * 0.5f),
+                        (int)(_knifeSprite.Width * 0.5f)
+                    );
+
+                    if (playerBounds.Intersects(knifeBounds))
+                    {
+                        hasKnife = true;
+
+                        // get rid of the knife
+                        _knifePositions[i] = new Vector2(-9999, -9999);
+
+                        // sound effect
+                        if (_hitSoundEffect != null)
+                            Core.Audio.PlaySoundEffect(_hitSoundEffect);
+                    }
+                }
+            }
+
+            for (int i = 0; i < _heartPositions.Count; i++)
+            {
+                Vector2 heartPos = _heartPositions[i];
+
+                Circle heartBounds = new Circle(
+                    (int)(heartPos.X + _heartSprite.Width * 0.5f),
+                    (int)(heartPos.Y + _heartSprite.Height * 0.5f),
+                    (int)(_heartSprite.Width * 0.5f)
+                );
+
+                if (playerBounds.Intersects(heartBounds))
+                {
+                    _player.Health.Heal(30);
+
+                    _heartPositions[i] = new Vector2(-9999, -9999);
+
+                    if (_hitSoundEffect != null)
+                        Core.Audio.PlaySoundEffect(_hitSoundEffect);
+                }
+            }
+
+            Vector2 keyPos = _keyPosition;
+
+            Circle keyBounds = new Circle(
+                (int)(keyPos.X + _keySprite.Width * 0.5f),
+                (int)(keyPos.Y + _keySprite.Height * 0.5f),
+                (int)(_keySprite.Width * 0.5f)
+            );
+
+            if (playerBounds.Intersects(keyBounds))
+            {
+                _score += 500;
+                _keyPosition = new Vector2(-9999, -9999);
+                if (_hitSoundEffect != null)
+                    Core.Audio.PlaySoundEffect(_hitSoundEffect);
+            }
 
             // Calculate the new position of the slime based on the velocity.
             for (int i = 0; i < _slimePositions.Count; i++)
@@ -264,16 +299,16 @@ namespace First_Playable_Roman.Scenes
                     (int)radius
                 );
 
-                // Recompute player bounding circle for collision check (if still using Circle-based checks)
-                Circle playerBounds = new Circle(
-                    (int)(_playerPosition.X + (_playerSprite.Width * 0.5f)),
-                    (int)(_playerPosition.Y + (_playerSprite.Height * 0.5f)),
-                    (int)(_playerSprite.Width * 0.5f)
-                );
-
                 if (playerBounds.Intersects(slimeBounds))
                 {
-                    _player.TakeDamage(10);
+                    if (!hasKnife)
+                        _player.TakeDamage(10);
+                    else
+                    {
+                        _score += 100;
+                        hasKnife = false;
+                    }
+                    
 
                     // Respawn slime inside playable area leaving exactly one tile margin on each edge.
                     int tileWScaled = (int)Math.Max(1, Math.Round(_tilemap.TileWidth));
@@ -295,6 +330,8 @@ namespace First_Playable_Roman.Scenes
                         Core.Audio.PlaySoundEffect(_hitSoundEffect);
                 }
             }
+
+
         }
 
         private void AssignRandomSlimeVelocity(int index)
@@ -312,7 +349,7 @@ namespace First_Playable_Roman.Scenes
             lurkingEnemies.Add((LurkingStrategy)_enemies[index]);
 
             // Multiply the direction vector by the movement speed.
-            _slimeVelocity.Add(direction * lurkingEnemies[index].Speed);
+            _slimeVelocity.Add(direction * _enemies[index].Speed);
         }
 
         public override void Draw(GameTime gameTime)
@@ -329,10 +366,10 @@ namespace First_Playable_Roman.Scenes
             for(int i = 0; i < _slimePositions.Count; i++)
                 _slimeSprite?.Draw(Core.SpriteBatch, _slimePositions[i]);
 
-            for(int i = 0; i < _knifePositions.Length; i++)
+            for(int i = 0; i < _knifePositions.Count; i++)
                 _knifeSprite?.Draw(Core.SpriteBatch, _knifePositions[i]);
 
-            for (int i = 0; i < _heartPositions.Length; i++)
+            for (int i = 0; i < _heartPositions.Count; i++)
                 _heartSprite?.Draw(Core.SpriteBatch, _heartPositions[i]);
 
             _keySprite?.Draw(Core.SpriteBatch, _keyPosition);
@@ -342,7 +379,7 @@ namespace First_Playable_Roman.Scenes
             {
                 _playerSprite.Draw(Core.SpriteBatch, _playerPosition);
 
-                // Draw the score
+                // Draw the health
                 Core.SpriteBatch.DrawString(
                     _font,              // spriteFont
                     $"Health: {_player.Health.CurrentHealth}", // text
@@ -353,6 +390,18 @@ namespace First_Playable_Roman.Scenes
                     1.5f,               // scale
                     SpriteEffects.None, // effects
                     0.0f                // layerDepth
+                );
+
+                Core.SpriteBatch.DrawString(
+                    _font,
+                    $"Score: {_score}",
+                    _scoreTextPosition,
+                    Color.White,
+                    0.0f,
+                    _scoreTextOrigin,
+                    1.5f,
+                    SpriteEffects.None,
+                    0.0f
                 );
             }
             else if (_state == GameState.GameOver)
@@ -474,6 +523,17 @@ namespace First_Playable_Roman.Scenes
 
         private void Restart()
         {
+            Core.ExitOnEscape = false;
+
+            Rectangle screenBounds = Core.Bounds;
+
+            _roomBounds = new Rectangle(
+                (int)_tilemap.TileWidth,
+                (int)_tilemap.TileHeight,
+                (int)(_tilemap.TileWidth * _tilemap.Columns - _tilemap.TileWidth * 2),
+                (int)(_tilemap.TileHeight * _tilemap.Rows - _tilemap.TileHeight * 2)
+             );
+
             // Recreate basic player and sprites from content (simple restart).
             TextureAtlas atlas = TextureAtlas.FromFile(Content, "images/atlas-definition.xml");
             _playerSprite = atlas.CreateAnimatedSprite("Player-animation");
@@ -485,8 +545,8 @@ namespace First_Playable_Roman.Scenes
             _player = new Player("Player", 100, 565, 0, 10);
             _enemies = new List<Enemy>
             {
-                new LurkingStrategy(100, 100, 5, 10),
-                new LurkingStrategy(100, 100, 5, 10),
+                new LurkingStrategy(100, 100, 5, 5),
+                new LurkingStrategy(100, 100, 5, 5),
             };
             _slimePositions = new List<Vector2>();
             _slimeVelocity = new List<Vector2>();
@@ -494,9 +554,34 @@ namespace First_Playable_Roman.Scenes
             for (int i = 0; i < _enemies.Count; i++)
             {
                 _slimePositions.Add(new Vector2(_enemies[i]._position._xPos, _enemies[i]._position._yPos));
-                if(_enemies[i] is LurkingStrategy)
+                if (_enemies[i] is LurkingStrategy)
                     AssignRandomSlimeVelocity(i);
             }
+
+            _knifePositions = new List<Vector2>
+            {
+                new Vector2(200, 100),
+                new Vector2(300, 100)
+            };
+            _heartPositions = new List<Vector2>
+            {
+                new Vector2(500, 100),
+                new Vector2(500, 500)
+            };
+            _keyPosition = new Vector2(800, 400);
+
+        // Set the position of the score text to align to the left edge of the
+        // room bounds, and to vertically be at the center of the first tile.
+        _healthTextPosition = new Vector2(_roomBounds.Left, _tilemap.TileHeight * 0.5f);
+
+            // Set the origin of the text so it is left-centered.
+            float healthTextYOrigin = _font.MeasureString("Health").Y * 0.5f;
+            _healthTextOrigin = new Vector2(0, healthTextYOrigin);
+
+            _scoreTextPosition = new Vector2(_roomBounds.Right - 300, _tilemap.TileHeight * 0.5f);
+
+            float scoreTextYOrigin = _font.MeasureString("Score").Y * 0.5f;
+            _scoreTextOrigin = new Vector2(0, scoreTextYOrigin);
 
             _state = GameState.Playing;
         }

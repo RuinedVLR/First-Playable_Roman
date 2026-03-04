@@ -18,7 +18,7 @@ namespace First_Playable_Roman.Scripts.Movements
         private Circle _projectile;
         private int _projectileRad = 5;
 
-        public TurretStrategy(int maxHp, int xPos, int yPos, int fireSpeed) : base(maxHp, xPos, yPos)
+        public TurretStrategy(int maxHp, int xPos, int yPos, int fireSpeed) : base(maxHp, xPos, yPos, fireSpeed)
         {
             _fireSpeed = fireSpeed;
             _fireOrigin = new Position { _xPos = xPos + 50, _yPos = yPos + 50 };
