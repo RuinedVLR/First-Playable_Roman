@@ -85,7 +85,8 @@ namespace First_Playable_Roman.Scenes
             for (int i = 0; i < _enemies.Count; i++)
             {
                 _slimePositions.Add(new Vector2(_enemies[i]._position._xPos, _enemies[i]._position._yPos));
-                AssignRandomSlimeVelocity(i);
+                if(_enemies[i] is LurkingEnemy)
+                    AssignRandomSlimeVelocity(i);
             }
 
             // Default slime position until LoadContent sets the room and initial placement.
