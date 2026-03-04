@@ -11,13 +11,11 @@ namespace First_Playable_Roman.Scripts
     {
         public Health Health { get; set; }
         public Position _position;
-        public int _speed;
 
-        public Entity(int maxHp, int posX, int posY, int speed) 
+        public Entity(int maxHp, int posX, int posY) 
         {
             Health = new Health(maxHp);
             _position = new Position { _xPos = posX, _yPos = posY };
-            _speed = speed;
         }
     }
 }

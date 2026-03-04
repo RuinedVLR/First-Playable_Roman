@@ -19,7 +19,7 @@ namespace First_Playable_Roman.Scripts
             player.TakeDamage(Health.CurrentHealth);
         }
 
-        public Enemy(int maxHp, int xPos, int yPos, int speed) : base(maxHp, xPos, yPos, speed)
+        public Enemy(int maxHp, int xPos, int yPos) : base(maxHp, xPos, yPos)
         {
             
         }

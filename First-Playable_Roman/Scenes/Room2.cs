@@ -1,4 +1,6 @@
 ﻿using First_Playable_Roman.Scripts;
+using First_Playable_Roman.Scripts.Movements;
+using First_Playable_Roman.Scripts.Strategies;
 using Microsoft.Xna.Framework;
 using Microsoft.Xna.Framework.Audio;
 using Microsoft.Xna.Framework.Graphics;
@@ -8,13 +10,13 @@ using MonoGameLibrary;
 using MonoGameLibrary.Graphics;
 using MonoGameLibrary.Input;
 using MonoGameLibrary.Scenes;
-using Scripts;
 using System;
 using System.Collections.Generic;
+using System.Threading;
 
 namespace First_Playable_Roman.Scenes
 {
-    public class GameScene : Scene
+    public class Room2 : Scene
     {
         private AnimatedSprite _playerSprite;
         private AnimatedSprite _slimeSprite;
@@ -76,8 +78,8 @@ namespace First_Playable_Roman.Scenes
             _player = new Player(nameInput, 100, 565, 0, 10);
             _enemies = new List<Enemy>
             {
-                new LurkingEnemy(100, 100, 5, 10),
-                new LurkingEnemy(100, 100, 5, 10),
+                new LurkingStrategy(100, 100, 5, 10),
+                new LurkingStrategy(100, 100, 5, 10),
             };
             _slimePositions = new List<Vector2>();
             _slimeVelocity = new List<Vector2>();
@@ -85,7 +87,7 @@ namespace First_Playable_Roman.Scenes
             for (int i = 0; i < _enemies.Count; i++)
             {
                 _slimePositions.Add(new Vector2(_enemies[i]._position._xPos, _enemies[i]._position._yPos));
-                if(_enemies[i] is LurkingEnemy)
+                if(_enemies[i] is LurkingStrategy)
                     AssignRandomSlimeVelocity(i);
             }
 
@@ -282,8 +284,12 @@ namespace First_Playable_Roman.Scenes
             float y = (float)Math.Sin(angle);
             Vector2 direction = new Vector2(x, y);
 
+            List<LurkingStrategy> lurkingEnemies = new List<LurkingStrategy>();
+
+            lurkingEnemies.Add((LurkingStrategy)_enemies[index]);
+
             // Multiply the direction vector by the movement speed.
-            _slimeVelocity.Add(direction * _enemies[index]._speed);
+            _slimeVelocity.Add(direction * lurkingEnemies[index].Speed);
         }
 
         public override void Draw(GameTime gameTime)
@@ -433,8 +439,8 @@ namespace First_Playable_Roman.Scenes
             _player = new Player("Player", 100, 565, 0, 10);
             _enemies = new List<Enemy>
             {
-                new LurkingEnemy(100, 100, 5, 10),
-                new LurkingEnemy(100, 100, 5, 10),
+                new LurkingStrategy(100, 100, 5, 10),
+                new LurkingStrategy(100, 100, 5, 10),
             };
             _slimePositions = new List<Vector2>();
             _slimeVelocity = new List<Vector2>();
@@ -442,7 +448,7 @@ namespace First_Playable_Roman.Scenes
             for (int i = 0; i < _enemies.Count; i++)
             {
                 _slimePositions.Add(new Vector2(_enemies[i]._position._xPos, _enemies[i]._position._yPos));
-                if(_enemies[i] is LurkingEnemy)
+                if(_enemies[i] is LurkingStrategy)
                     AssignRandomSlimeVelocity(i);
             }
 
