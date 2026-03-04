@@ -36,9 +36,6 @@ namespace First_Playable_Roman.Scenes
         // Defines the bounds of the room that the slime and bat are contained within.
         private Rectangle _roomBounds;
 
-        // If GraphicsDevice wasn't ready in LoadContent, defer recalc to Update.
-        private bool _needsRoomRecalc;
-
         private SoundEffect _hitSoundEffect;
         private SoundEffect _bounceSoundEffect;
 
@@ -56,38 +53,6 @@ namespace First_Playable_Roman.Scenes
         public enum GameState { Playing, GameOver }
         public static GameState _state = GameState.Playing;
 
-        public GameScene()
-        {
-            _player = new Player("Player", 100, 0, 0, 10);
-            _enemies = new List<Enemy>
-            {
-                new LurkingEnemy(100, 100, 5, 10),
-                new LurkingEnemy(100, 100, 5, 10),
-                new LurkingEnemy(100, 100, 5, 10),
-                new LurkingEnemy(100, 100, 5, 10),
-                new LurkingEnemy(100, 100, 5, 10),
-                new LurkingEnemy(100, 100, 5, 10),
-                new LurkingEnemy(100, 100, 5, 10),
-                new LurkingEnemy(100, 100, 5, 10),
-                new LurkingEnemy(100, 100, 5, 10),
-                new LurkingEnemy(100, 100, 5, 10),
-                new LurkingEnemy(100, 100, 5, 10),
-                new LurkingEnemy(100, 100, 5, 10),
-                new LurkingEnemy(100, 100, 5, 10),
-                new LurkingEnemy(100, 100, 5, 10),
-                new LurkingEnemy(100, 100, 5, 10),
-                new LurkingEnemy(100, 100, 5, 10),
-                new LurkingEnemy(100, 100, 5, 10),
-                new LurkingEnemy(100, 100, 5, 10),
-                new LurkingEnemy(100, 100, 5, 10),
-                new LurkingEnemy(100, 100, 5, 10),
-                new LurkingEnemy(100, 100, 5, 10),
-                new LurkingEnemy(100, 100, 5, 10),
-                new LurkingEnemy(100, 100, 5, 10),
-                new LurkingEnemy(100, 100, 5, 10),
-            };
-        }
-
         public override void Initialize()
         {
             // TODO: Add your initialization logic here
@@ -96,14 +61,14 @@ namespace First_Playable_Roman.Scenes
 
             Core.ExitOnEscape = false;
 
-            Rectangle screenBounds = Core.GraphicsDevice.PresentationParameters.Bounds;
+            Rectangle screenBounds = Core.Bounds;
 
             _roomBounds = new Rectangle(
                 (int)_tilemap.TileWidth,
                 (int)_tilemap.TileHeight,
-                screenBounds.Width - (int)_tilemap.TileWidth * 2,
-                screenBounds.Height - (int)_tilemap.TileWidth * 2
-            );
+                (int)(_tilemap.TileWidth * _tilemap.Columns - _tilemap.TileWidth * 2),
+                (int)(_tilemap.TileHeight * _tilemap.Rows - _tilemap.TileHeight * 2)
+             );
 
             // Do not compute room bounds here: tilemap and scale are created in LoadContent.
             // Read player name and set default positions that don't depend on tilemap.
@@ -111,28 +76,6 @@ namespace First_Playable_Roman.Scenes
             _player = new Player(nameInput, 100, 565, 0, 10);
             _enemies = new List<Enemy>
             {
-                new LurkingEnemy(100, 100, 5, 10),
-                new LurkingEnemy(100, 100, 5, 10),
-                new LurkingEnemy(100, 100, 5, 10),
-                new LurkingEnemy(100, 100, 5, 10),
-                new LurkingEnemy(100, 100, 5, 10),
-                new LurkingEnemy(100, 100, 5, 10),
-                new LurkingEnemy(100, 100, 5, 10),
-                new LurkingEnemy(100, 100, 5, 10),
-                new LurkingEnemy(100, 100, 5, 10),
-                new LurkingEnemy(100, 100, 5, 10),
-                new LurkingEnemy(100, 100, 5, 10),
-                new LurkingEnemy(100, 100, 5, 10),
-                new LurkingEnemy(100, 100, 5, 10),
-                new LurkingEnemy(100, 100, 5, 10),
-                new LurkingEnemy(100, 100, 5, 10),
-                new LurkingEnemy(100, 100, 5, 10),
-                new LurkingEnemy(100, 100, 5, 10),
-                new LurkingEnemy(100, 100, 5, 10),
-                new LurkingEnemy(100, 100, 5, 10),
-                new LurkingEnemy(100, 100, 5, 10),
-                new LurkingEnemy(100, 100, 5, 10),
-                new LurkingEnemy(100, 100, 5, 10),
                 new LurkingEnemy(100, 100, 5, 10),
                 new LurkingEnemy(100, 100, 5, 10),
             };
@@ -173,17 +116,6 @@ namespace First_Playable_Roman.Scenes
             _tilemap = Tilemap.FromFile(Content, "images/tilemap-definition.xml");
             _tilemap.Scale = new Vector2(4.0f, 4.0f);
 
-            // Try to perform the recalculation now; if GraphicsDevice is not ready, defer it.
-            if (Core.GraphicsDevice != null)
-            {
-                RecalculateRoomBoundsAndPlaceSlime();
-                _needsRoomRecalc = false;
-            }
-            else
-            {
-                _needsRoomRecalc = true;
-            }
-
             // Load the bounce sound effect
             _bounceSoundEffect = Content.Load<SoundEffect>("audio/bounceSoundEffect");
 
@@ -195,51 +127,6 @@ namespace First_Playable_Roman.Scenes
 
             // Load the font
             _font = Content.Load<SpriteFont>("fonts/04B_30");
-        }
-
-        private void RecalculateRoomBoundsAndPlaceSlime()
-        {
-            if (_tilemap == null)
-                throw new InvalidOperationException("_tilemap must be initialized before recalculating room bounds.");
-
-            if (Core.GraphicsDevice == null)
-                throw new InvalidOperationException("GraphicsDevice not initialized yet.");
-
-            // Scaled tile size in pixels (rounded to avoid truncation errors)
-            int tileWScaled = (int)Math.Max(1, Math.Round(_tilemap.TileWidth));
-            int tileHScaled = (int)Math.Max(1, Math.Round(_tilemap.TileHeight));
-
-            // Map size in pixels based on tilemap columns/rows and scaled tile size.
-            int mapPixelWidth = _tilemap.Columns * tileWScaled;
-            int mapPixelHeight = _tilemap.Rows * tileHScaled;
-
-            // Make exactly one tile on each edge non-passable.
-            // Playable area is the map inset by one tile from each side.
-            int roomX = tileWScaled;
-            int roomY = tileHScaled;
-            int roomWidth = Math.Max(0, mapPixelWidth - tileWScaled * 2);
-            int roomHeight = Math.Max(0, mapPixelHeight - tileHScaled * 2);
-
-            _roomBounds = new Rectangle(roomX, roomY, roomWidth, roomHeight);
-
-            // Place slime in the visual center of the playable area.
-            float slimeCx = roomX + roomWidth * 0.5f;
-            float slimeCy = roomY + roomHeight * 0.5f;
-            float slimeHalfW = _slimeSprite?.Width * 0.5f ?? 0f;
-            float slimeHalfH = _slimeSprite?.Height * 0.5f ?? 0f;
-            if(_slimePositions != null)
-                for (int i = 0; i < _slimePositions.Count; i++)
-                    _slimePositions[i] = new Vector2(slimeCx - slimeHalfW, slimeCy - slimeHalfH);
-                
-
-            // Clamp player into the playable area.
-            if (_playerSprite != null && _player != null)
-            {
-                int maxX = Math.Max(_roomBounds.Left, _roomBounds.Right - (int)_playerSprite.Width);
-                int maxY = Math.Max(_roomBounds.Top, _roomBounds.Bottom - (int)_playerSprite.Height);
-                _player._position._xPos = Math.Clamp(_player._position._xPos, _roomBounds.Left, maxX);
-                _player._position._yPos = Math.Clamp(_player._position._yPos, _roomBounds.Top, maxY);
-            }
         }
 
         public override void Update(GameTime gameTime)
@@ -258,16 +145,6 @@ namespace First_Playable_Roman.Scenes
 
             _playerSprite?.Update(gameTime);
             _slimeSprite?.Update(gameTime);
-
-            // If we deferred room recalculation because GraphicsDevice wasn't ready, do it now.
-            if (_needsRoomRecalc)
-            {
-                if (Core.GraphicsDevice != null && _tilemap != null)
-                {
-                    RecalculateRoomBoundsAndPlaceSlime();
-                    _needsRoomRecalc = false;
-                }
-            }
 
             // If game over, allow restart and skip gameplay updates
             if (_state == GameState.GameOver)
@@ -555,28 +432,6 @@ namespace First_Playable_Roman.Scenes
             _player = new Player("Player", 100, 565, 0, 10);
             _enemies = new List<Enemy>
             {
-                new LurkingEnemy(100, 100, 5, 10),
-                new LurkingEnemy(100, 100, 5, 10),
-                new LurkingEnemy(100, 100, 5, 10),
-                new LurkingEnemy(100, 100, 5, 10),
-                new LurkingEnemy(100, 100, 5, 10),
-                new LurkingEnemy(100, 100, 5, 10),
-                new LurkingEnemy(100, 100, 5, 10),
-                new LurkingEnemy(100, 100, 5, 10),
-                new LurkingEnemy(100, 100, 5, 10),
-                new LurkingEnemy(100, 100, 5, 10),
-                new LurkingEnemy(100, 100, 5, 10),
-                new LurkingEnemy(100, 100, 5, 10),
-                new LurkingEnemy(100, 100, 5, 10),
-                new LurkingEnemy(100, 100, 5, 10),
-                new LurkingEnemy(100, 100, 5, 10),
-                new LurkingEnemy(100, 100, 5, 10),
-                new LurkingEnemy(100, 100, 5, 10),
-                new LurkingEnemy(100, 100, 5, 10),
-                new LurkingEnemy(100, 100, 5, 10),
-                new LurkingEnemy(100, 100, 5, 10),
-                new LurkingEnemy(100, 100, 5, 10),
-                new LurkingEnemy(100, 100, 5, 10),
                 new LurkingEnemy(100, 100, 5, 10),
                 new LurkingEnemy(100, 100, 5, 10),
             };

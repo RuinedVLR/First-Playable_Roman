@@ -50,6 +50,11 @@ namespace MonoGameLibrary
         public static InputManager Input { get; private set; }
 
         /// <summary>
+        /// Gets a reference to the window bounds.
+        /// </summary>
+        public static Rectangle Bounds;
+
+        /// <summary>
         /// Gets or Sets a value that indicates if the game should exit when the esc key on the keyboard is pressed.
         /// </summary>
         public static bool ExitOnEscape { get; set; }
@@ -83,6 +88,9 @@ namespace MonoGameLibrary
 
             // Apply Graphics
             Graphics.ApplyChanges();
+
+            //Set Bounds Size
+            Bounds = new Rectangle(0, 0, width, height);
 
             // Set Window name
             Window.Title = title;

@@ -47,7 +47,7 @@ namespace First_Playable_Roman.Scenes
         private Vector2 _backgroundOffset;
 
         // The speed that the background pattern scrolls.
-        private float _scrollSpeed = 50.0f;
+        private float _scrollSpeed = 150.0f;
 
         public override void Initialize()
         {
