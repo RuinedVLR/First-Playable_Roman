@@ -73,6 +73,10 @@ namespace First_Playable_Roman.Scenes
 
         private Vector2 _scoreTextOrigin;
 
+        private Vector2 _hasKnifeTextPosition;
+
+        private Vector2 _hasKnifeTextOrigin;
+
         private Timer _shootTimer;
 
         public enum GameState { Playing, GameOver }
@@ -399,6 +403,18 @@ namespace First_Playable_Roman.Scenes
                     Color.White,
                     0.0f,
                     _scoreTextOrigin,
+                    1.5f,
+                    SpriteEffects.None,
+                    0.0f
+                );
+
+                Core.SpriteBatch.DrawString(
+                    _font,
+                    $"Has Knife: {(hasKnife ? "Yes" : "No")}",
+                    new Vector2(_healthTextPosition.X, _healthTextPosition.Y + 40), // Position below health text
+                    Color.White,
+                    0.0f,
+                    new Vector2(0, _healthTextOrigin.Y), // Left align, same Y origin as health text
                     1.5f,
                     SpriteEffects.None,
                     0.0f
