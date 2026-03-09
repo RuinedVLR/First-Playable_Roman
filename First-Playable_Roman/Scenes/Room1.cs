@@ -50,6 +50,9 @@ namespace First_Playable_Roman.Scenes
         // Defines the tilemap to draw.
         private Tilemap _tilemap;
 
+        // List of obstacles
+        private List<int> _obstaclesTileIDs;
+
         // Defines the bounds of the room that the slime and bat are contained within.
         private Rectangle _roomBounds;
 
@@ -160,7 +163,10 @@ namespace First_Playable_Roman.Scenes
             if (GamePad.GetState(PlayerIndex.One).Buttons.Back == ButtonState.Pressed || Keyboard.GetState().IsKeyDown(Keys.Escape))
                 Core.ChangeScene(new TitleScene());
 
-            
+            //if (_obstaclesTileIDs.Contains(_tilemap.GetTile((int)(_playerPosition.X % _tilemap.Columns), (int)(_playerPosition.Y % _tilemap.Rows))))
+            //{
+
+            //}
 
             PlayerInput();
             if (_player != null)
@@ -460,6 +466,8 @@ namespace First_Playable_Roman.Scenes
             _player._position._xPos = Math.Clamp(_player._position._xPos, minX, Math.Max(minX, maxX));
             _player._position._yPos = Math.Clamp(_player._position._yPos, minY, Math.Max(minY, maxY));
 
+
+
             // If the M key is pressed, toggle mute state for audio.
             if (keyboard.WasKeyJustPressed(Keys.M))
             {
@@ -566,6 +574,18 @@ namespace First_Playable_Roman.Scenes
                 new Vector2(500, 500)
             };
             _keyPosition = new Vector2(800, 400);
+
+            _obstaclesTileIDs = new List<int>
+            {
+                03,
+                04,
+                07,
+                08,
+                11,
+                57,
+                63,
+                64
+            };
 
             // Set the position of the score text to align to the left edge of the
             // room bounds, and to vertically be at the center of the first tile.
