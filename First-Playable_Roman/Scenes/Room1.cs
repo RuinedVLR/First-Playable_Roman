@@ -42,7 +42,7 @@ namespace First_Playable_Roman.Scenes
         private List<Vector2> _slimePositions;
 
         // Tracks the velocity of the slime.
-        private List<Vector2> _slimeVelocity;
+        public List<Vector2> _slimeVelocity;
 
         // Tracks the number of projectiles shot
         private List<Circle> _projectiles;
@@ -298,8 +298,8 @@ namespace First_Playable_Roman.Scenes
 
                 // Rebuild slime bounding circle for overlap/interaction checks
                 Circle slimeBounds = new Circle(
-                    (int)(centerX),
-                    (int)(centerY),
+                    (int)centerX,
+                    (int)centerY,
                     (int)radius
                 );
 
@@ -327,7 +327,7 @@ namespace First_Playable_Roman.Scenes
                     // Position on tile grid inside playable area (roomX + column * tileWScaled)
                     _slimePositions[i] = new Vector2(_roomBounds.Left + column * tileWScaled, _roomBounds.Top + row * tileHScaled);
 
-                    AssignRandomSlimeVelocity(i);
+                    _slimeVelocity.Add(_enemies[i].Move());
 
                     // Play hit sound effect on player damage
                     if (_hitSoundEffect != null)
@@ -336,24 +336,6 @@ namespace First_Playable_Roman.Scenes
             }
 
 
-        }
-
-        private void AssignRandomSlimeVelocity(int index)
-        {
-            // Generate a random angle.
-            float angle = (float)(Random.Shared.NextDouble() * Math.PI * 2);
-
-            // Convert angle to a direction vector.
-            float x = (float)Math.Cos(angle);
-            float y = (float)Math.Sin(angle);
-            Vector2 direction = new Vector2(x, y);
-
-            List<LurkingStrategy> lurkingEnemies = new List<LurkingStrategy>();
-
-            lurkingEnemies.Add((LurkingStrategy)_enemies[index]);
-
-            // Multiply the direction vector by the movement speed.
-            _slimeVelocity.Add(direction * _enemies[index].Speed);
         }
 
         public override void Draw(GameTime gameTime)
@@ -570,8 +552,7 @@ namespace First_Playable_Roman.Scenes
             for (int i = 0; i < _enemies.Count; i++)
             {
                 _slimePositions.Add(new Vector2(_enemies[i]._position._xPos, _enemies[i]._position._yPos));
-                if (_enemies[i] is LurkingStrategy)
-                    AssignRandomSlimeVelocity(i);
+                _slimeVelocity.Add(_enemies[i].Move());
             }
 
             _knifePositions = new List<Vector2>
@@ -586,9 +567,9 @@ namespace First_Playable_Roman.Scenes
             };
             _keyPosition = new Vector2(800, 400);
 
-        // Set the position of the score text to align to the left edge of the
-        // room bounds, and to vertically be at the center of the first tile.
-        _healthTextPosition = new Vector2(_roomBounds.Left, _tilemap.TileHeight * 0.5f);
+            // Set the position of the score text to align to the left edge of the
+            // room bounds, and to vertically be at the center of the first tile.
+            _healthTextPosition = new Vector2(_roomBounds.Left, _tilemap.TileHeight * 0.5f);
 
             // Set the origin of the text so it is left-centered.
             float healthTextYOrigin = _font.MeasureString("Health").Y * 0.5f;
@@ -598,6 +579,11 @@ namespace First_Playable_Roman.Scenes
 
             float scoreTextYOrigin = _font.MeasureString("Score").Y * 0.5f;
             _scoreTextOrigin = new Vector2(0, scoreTextYOrigin);
+
+            _hasKnifeTextPosition = new Vector2(_healthTextPosition.X, _healthTextPosition.Y + 40);
+
+            float hasKnifeTextYOrigin = _font.MeasureString("Has Knife").Y * 0.5f;
+            _hasKnifeTextOrigin = new Vector2(0, hasKnifeTextYOrigin);
 
             _state = GameState.Playing;
         }

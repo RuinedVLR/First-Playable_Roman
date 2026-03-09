@@ -3,10 +3,10 @@ using Scripts;
 using System;
 using System.Collections.Generic;
 using System.Linq;
-using System.Numerics;
 using System.Text;
 using System.Threading;
 using System.Threading.Tasks;
+using Microsoft.Xna.Framework;
 
 namespace First_Playable_Roman.Scripts.Movements
 {
@@ -22,6 +22,11 @@ namespace First_Playable_Roman.Scripts.Movements
         {
             _fireSpeed = fireSpeed;
             _fireOrigin = new Position { _xPos = xPos + 50, _yPos = yPos + 50 };
+        }
+
+        public override Vector2 Move()
+        {
+            return new Vector2(0, 0);
         }
 
         public Circle Shoot()

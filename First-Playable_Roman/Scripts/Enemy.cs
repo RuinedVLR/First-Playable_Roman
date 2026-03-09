@@ -4,10 +4,11 @@ using System.Collections.Generic;
 using System.Linq;
 using System.Text;
 using System.Threading.Tasks;
+using Microsoft.Xna.Framework;
 
 namespace First_Playable_Roman.Scripts
 {
-    internal class Enemy : Entity
+    internal abstract class Enemy : Entity
     {
         public int Speed { get; set; }
 
@@ -25,5 +26,7 @@ namespace First_Playable_Roman.Scripts
         {
             Speed = speed;
         }
+
+        public abstract Vector2 Move();
     }
 }
