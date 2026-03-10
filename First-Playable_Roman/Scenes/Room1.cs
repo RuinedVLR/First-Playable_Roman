@@ -163,7 +163,7 @@ namespace First_Playable_Roman.Scenes
             if (GamePad.GetState(PlayerIndex.One).Buttons.Back == ButtonState.Pressed || Keyboard.GetState().IsKeyDown(Keys.Escape))
                 Core.ChangeScene(new TitleScene());
 
-            //if (_obstaclesTileIDs.Contains(_tilemap.GetTile((int)(_playerPosition.X % _tilemap.Columns), (int)(_playerPosition.Y % _tilemap.Rows))))
+            //if (_obstaclesTileIDs.Contains())
             //{
 
             //}
