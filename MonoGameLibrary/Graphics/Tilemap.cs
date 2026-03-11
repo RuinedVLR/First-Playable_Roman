@@ -106,6 +106,11 @@ namespace MonoGameLibrary.Graphics
             return GetTile(index);
         }
 
+        public int[] GetTilesIDs()
+        {
+            return _tiles;
+        }
+
         /// <summary>
         /// Draws this tilemap using the given sprite batch.
         /// </summary>

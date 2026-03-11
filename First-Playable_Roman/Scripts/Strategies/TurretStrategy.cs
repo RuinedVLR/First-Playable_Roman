@@ -1,5 +1,4 @@
 ﻿using MonoGameLibrary;
-using Scripts;
 using System;
 using System.Collections.Generic;
 using System.Linq;
@@ -14,14 +13,14 @@ namespace First_Playable_Roman.Scripts.Movements
     {
         public bool IsShooting { get; private set; }
         public int _fireSpeed;
-        private Position _fireOrigin;
+        private Vector2 _fireOrigin;
         private Circle _projectile;
         private int _projectileRad = 5;
 
         public TurretStrategy(int maxHp, int xPos, int yPos, int fireSpeed) : base(maxHp, xPos, yPos, fireSpeed)
         {
             _fireSpeed = fireSpeed;
-            _fireOrigin = new Position { _xPos = xPos + 50, _yPos = yPos + 50 };
+            _fireOrigin = new Vector2 ( _fireOrigin.X = xPos + 50, _fireOrigin.Y = yPos + 50 );
         }
 
         public override Vector2 Move()
@@ -31,7 +30,7 @@ namespace First_Playable_Roman.Scripts.Movements
 
         public Circle Shoot()
         {
-            _projectile = new Circle(_fireOrigin._xPos, _fireOrigin._yPos, _projectileRad);
+            _projectile = new Circle((int)_fireOrigin.X, (int)_fireOrigin.Y, _projectileRad);
 
             IsShooting = true;
 

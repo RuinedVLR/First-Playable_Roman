@@ -120,6 +120,9 @@
 /processorParam:TextureFormat=Color
 /build:images/PlayersAtlas.png
 
+#begin images/room1-definition.xml
+/copy:images/room1-definition.xml
+
 #begin images/SlimeAtlas.png
 /importer:TextureImporter
 /processor:TextureProcessor
@@ -131,7 +134,4 @@
 /processorParam:MakeSquare=False
 /processorParam:TextureFormat=Color
 /build:images/SlimeAtlas.png
-
-#begin images/tilemap-definition.xml
-/copy:images/tilemap-definition.xml
 

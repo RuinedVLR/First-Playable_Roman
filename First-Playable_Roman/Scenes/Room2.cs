@@ -16,8 +16,10 @@ using System.Threading;
 
 namespace First_Playable_Roman.Scenes
 {
-    public class Room2 : Scene
+    public class Room2 : Rooms
     {
+        public Room2(Player player, Vector2 playerPostion) : base(player, playerPostion) {}
+
         private AnimatedSprite _playerSprite;
         private AnimatedSprite _slimeSprite;
 
@@ -28,9 +30,6 @@ namespace First_Playable_Roman.Scenes
 
         // Tracks the position of the slime.
         private List<Vector2> _slimePositions;
-
-        // Tracks the velocity of the slime.
-        private List<Vector2> _slimeVelocity;
 
         // Defines the tilemap to draw.
         private Tilemap _tilemap;
@@ -52,58 +51,13 @@ namespace First_Playable_Roman.Scenes
         // Defines the origin used when drawing the score text.
         private Vector2 _healthTextOrigin;
 
-        public enum GameState { Playing, GameOver }
-        public static GameState _state = GameState.Playing;
-
         public override void Initialize()
         {
             // TODO: Add your initialization logic here
 
             base.Initialize();
 
-            Core.ExitOnEscape = false;
-
-            Rectangle screenBounds = Core.Bounds;
-
-            _roomBounds = new Rectangle(
-                (int)_tilemap.TileWidth,
-                (int)_tilemap.TileHeight,
-                (int)(_tilemap.TileWidth * _tilemap.Columns - _tilemap.TileWidth * 2),
-                (int)(_tilemap.TileHeight * _tilemap.Rows - _tilemap.TileHeight * 2)
-             );
-
-            // Do not compute room bounds here: tilemap and scale are created in LoadContent.
-            // Read player name and set default positions that don't depend on tilemap.
-            string nameInput = Console.ReadLine();
-            _player = new Player(nameInput, 100, 565, 0, 10);
-            _enemies = new List<Enemy>
-            {
-                new LurkingStrategy(100, 100, 5, 10),
-                new LurkingStrategy(100, 100, 5, 10),
-            };
-            _slimePositions = new List<Vector2>();
-            _slimeVelocity = new List<Vector2>();
-
-            for (int i = 0; i < _enemies.Count; i++)
-            {
-                _slimePositions.Add(new Vector2(_enemies[i]._position._xPos, _enemies[i]._position._yPos));
-                if(_enemies[i] is LurkingStrategy)
-                    AssignRandomSlimeVelocity(i);
-            }
-
-            // Default slime position until LoadContent sets the room and initial placement.
-            foreach (var enemy in _enemies)
-            {
-                
-            }
-
-            // Set the position of the score text to align to the left edge of the
-            // room bounds, and to vertically be at the center of the first tile.
-            _healthTextPosition = new Vector2(_roomBounds.Left, _tilemap.TileHeight * 0.5f);
-
-            // Set the origin of the text so it is left-centered.
-            float scoreTextYOrigin = _font.MeasureString("Score").Y * 0.5f;
-            _healthTextOrigin = new Vector2(0, scoreTextYOrigin);
+            Restart();
         }
 
         public override void LoadContent()
@@ -172,7 +126,7 @@ namespace First_Playable_Roman.Scenes
 
             PlayerInput();
             if (_player != null)
-                _playerPosition = new Vector2(_player._position._xPos, _player._position._yPos);
+                _playerPosition = new Vector2(_player._position.X, _player._position.Y);
 
             // Calculate the new position of the slime based on the velocity.
             for (int i = 0; i < _slimePositions.Count; i++)
@@ -344,65 +298,6 @@ namespace First_Playable_Roman.Scenes
             base.Draw(gameTime);
         }
 
-        public void PlayerInput()
-        {
-            KeyboardInfo keyboard = Core.Input.Keyboard;
-            
-            // Skip player input when game over or player missing.
-            if (_state == GameState.GameOver || _player == null || _playerSprite == null)
-                return;
-
-            int playerInputX = 0;
-            int playerInputY = 0;
-
-            if (keyboard.IsKeyDown(Keys.Space))
-            {
-                _player._speed = 4;
-            }
-            else
-            {
-                _player._speed = 2;
-            }
-
-            if (keyboard.IsKeyDown(Keys.W) || keyboard.IsKeyDown(Keys.Up)) playerInputY--;
-            if (keyboard.IsKeyDown(Keys.S) || keyboard.IsKeyDown(Keys.Down)) playerInputY++;
-            if (keyboard.IsKeyDown(Keys.A) || keyboard.IsKeyDown(Keys.Left)) playerInputX--;
-            if (keyboard.IsKeyDown(Keys.D) || keyboard.IsKeyDown(Keys.Right)) playerInputX++;
-
-            // Apply input to position
-            _player._position._xPos += playerInputX * _player._speed;
-            _player._position._yPos += playerInputY * _player._speed;
-
-            // Clamp using playable room bounds so continuous input won't cause jitter.
-            int minX = _roomBounds.Left;
-            int minY = _roomBounds.Top;
-            int maxX = _roomBounds.Right - (int)_playerSprite.Width;
-            int maxY = _roomBounds.Bottom - (int)_playerSprite.Height;
-
-            _player._position._xPos = Math.Clamp(_player._position._xPos, minX, Math.Max(minX, maxX));
-            _player._position._yPos = Math.Clamp(_player._position._yPos, minY, Math.Max(minY, maxY));
-
-            // If the M key is pressed, toggle mute state for audio.
-            if (keyboard.WasKeyJustPressed(Keys.M))
-            {
-                Core.Audio.ToggleMute();
-            }
-
-            // If the + button is pressed, increase the volume.
-            if (keyboard.WasKeyJustPressed(Keys.OemPlus))
-            {
-                Core.Audio.SongVolume += 0.1f;
-                Core.Audio.SoundEffectVolume += 0.1f;
-            }
-
-            // If the - button was pressed, decrease the volume.
-            if (keyboard.WasKeyJustPressed(Keys.OemMinus))
-            {
-                Core.Audio.SongVolume -= 0.1f;
-                Core.Audio.SoundEffectVolume -= 0.1f;
-            }
-        }
-
         private void GameOver()
         {
             if (_state == GameState.GameOver) return;
@@ -436,7 +331,7 @@ namespace First_Playable_Roman.Scenes
             Core.Audio.PlaySong(_themeSong);
             Core.Audio.SongVolume = 0.3f;
 
-            _player = new Player("Player", 100, 565, 0, 10);
+            _player = new Player("Player", 100, 565, 0, 10, _playerSprite);
             _enemies = new List<Enemy>
             {
                 new LurkingStrategy(100, 100, 5, 10),
@@ -447,7 +342,7 @@ namespace First_Playable_Roman.Scenes
 
             for (int i = 0; i < _enemies.Count; i++)
             {
-                _slimePositions.Add(new Vector2(_enemies[i]._position._xPos, _enemies[i]._position._yPos));
+                _slimePositions.Add(new Vector2(_enemies[i]._position.X, _enemies[i]._position.Y));
                 if(_enemies[i] is LurkingStrategy)
                     AssignRandomSlimeVelocity(i);
             }

@@ -98,7 +98,7 @@ namespace First_Playable_Roman.Scenes
             // If the user presses enter, switch to the game scene.
             if (Core.Input.Keyboard.WasKeyJustPressed(Keys.Enter))
             {
-                Core.ChangeScene(new Room1());
+                Core.ChangeScene(new Room1("images/room1-definition.xml"));
             }
 
             // Update the offsets for the background pattern wrapping so that it

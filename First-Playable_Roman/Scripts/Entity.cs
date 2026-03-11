@@ -1,4 +1,4 @@
-﻿using Scripts;
+﻿using Microsoft.Xna.Framework;
 using System;
 using System.Collections.Generic;
 using System.Linq;
@@ -7,15 +7,15 @@ using System.Threading.Tasks;
 
 namespace First_Playable_Roman.Scripts
 {
-    internal class Entity
+    public class Entity
     {
-        public Health Health { get; set; }
-        public Position _position;
+        
+        public Vector2 _position;
+        public Vector2 _previousPosition;
 
-        public Entity(int maxHp, int posX, int posY) 
+        public Entity(int posX, int posY) 
         {
-            Health = new Health(maxHp);
-            _position = new Position { _xPos = posX, _yPos = posY };
+            _position = new Vector2( _position.X = posX, _position.Y = posY);
         }
     }
 }

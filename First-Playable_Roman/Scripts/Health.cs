@@ -6,7 +6,7 @@ using System.Threading.Tasks;
 
 namespace First_Playable_Roman.Scripts
 {
-    internal class Health
+    public class Health
     {
         public int MaxHealth { get; private set; }
         public int CurrentHealth { get; private set; }
