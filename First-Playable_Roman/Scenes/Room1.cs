@@ -33,14 +33,8 @@ namespace First_Playable_Roman.Scenes
 
         private List<Enemy> _enemies;
 
-        // Tracks the number of projectiles shot
-        private List<Circle> _projectiles;
-
         // Defines the tilemap to draw.
         private Tilemap _tilemap;
-
-        // List of obstacles
-        private List<int> _obstaclesTileIDs;
 
         // Defines the bounds of the room that the slime and bat are contained within.
         private Rectangle _roomBounds;
@@ -49,14 +43,6 @@ namespace First_Playable_Roman.Scenes
 
         // The SpriteFont Description used to draw text.
         private SpriteFont _font;
-
-        // Defines the position to draw the health text at.
-        private Vector2 _healthTextPosition;
-
-        // Defines the origin used when drawing the health text.
-        private Vector2 _healthTextOrigin;
-
-        private Timer _shootTimer;
 
         public override void LoadContent()
         {
@@ -118,6 +104,24 @@ namespace First_Playable_Roman.Scenes
                 new LurkingStrategy(100, 100, 5, 5),
                 new LurkingStrategy(100, 100, 5, 5),
             };
+
+            int[] tilesInts = _tilemap.GetTilesIDs();
+
+            for (int i = 0; i < tilesInts.Length; i++)
+            {
+                if (_obstaclesTileIDs.Contains(tilesInts[i]))
+                {
+                    int x = i % _tilemap.Columns;
+                    int y = (int)Math.Floor((double)(i / _tilemap.Columns));
+
+                    _obstacles.Add(new Rectangle(
+                        x,
+                        y,
+                        (int)_tilemap.TileWidth,
+                        (int)_tilemap.TileHeight
+                    ));
+                }
+            }
 
             _knifePositions = new List<Vector2>
             {

@@ -45,9 +45,6 @@ namespace First_Playable_Roman.Scenes
         // Tracks the velocity of the slime.
         public List<Vector2> _slimeVelocity;
 
-        // Tracks the number of projectiles shot
-        private List<Circle> _projectiles;
-
         // Defines the tilemap to draw.
         private Tilemap _tilemap;
 
@@ -55,8 +52,8 @@ namespace First_Playable_Roman.Scenes
         private string _tilemapPath;
 
         // List of obstacles
-        private List<int> _obstaclesTileIDs;
-        private List<Rectangle> _obstacles;
+        public List<int> _obstaclesTileIDs;
+        public List<Rectangle> _obstacles;
 
         // Defines the bounds of the room that the slime and bat are contained within.
         private Rectangle _roomBounds;
@@ -83,8 +80,6 @@ namespace First_Playable_Roman.Scenes
         private Vector2 _hasKnifeTextPosition;
 
         private Vector2 _hasKnifeTextOrigin;
-
-        private Timer _shootTimer;
 
         public enum GameState { Playing, GameOver }
         public static GameState _state = GameState.Playing;
@@ -182,12 +177,6 @@ namespace First_Playable_Roman.Scenes
 
             PlayerIntersections();
             PlayerInput();
-            if(_player._isShowHitboxes)
-            {
-                Debug.Print("Pressed T to show Hitboxes");
-                for(int i = 0; i < _obstacles.Count; i++)
-                    Core.DrawRectangleOutline(_obstacles[i], Color.Red);
-            }
                 
             if (_player != null)
                 _playerPosition = new Vector2(_player._position.X, _player._position.Y);
@@ -214,6 +203,29 @@ namespace First_Playable_Roman.Scenes
                 _heartSprite?.Draw(Core.SpriteBatch, _heartPositions[i]);
 
             _keySprite?.Draw(Core.SpriteBatch, _keyPosition);
+
+            if (_player != null && _player._isShowHitboxes)
+            {
+                Debug.Print("Pressed T to show Hitboxes");
+
+                Core.DrawRectangleOutline(new Rectangle(
+                    (int)_playerPosition.X,
+                    (int)_playerPosition.Y,
+                    (int)_playerSprite.Width,
+                    (int)_playerSprite.Height
+                ), Color.Red
+                );
+                for(int i = 0; i < _obstacles.Count; i++)
+                    Core.DrawRectangleOutline(_obstacles[i], Color.Red);
+                for(int i = 0; i < _slimePositions.Count; i++)
+                    Core.DrawRectangleOutline(new Rectangle(
+                        (int)_slimePositions[i].X,
+                        (int)_slimePositions[i].Y,
+                        (int)_slimeSprite.Width,
+                        (int)_slimeSprite.Height
+                    ), Color.Red
+                );
+            }
 
             // Draw player only when present and playing
             if (_state == GameState.Playing && _playerSprite != null)
@@ -338,20 +350,20 @@ namespace First_Playable_Roman.Scenes
             }
         }
 
-        private void AllTurretShoot(object state)
-        {
-            List<TurretStrategy> turrets = new List<TurretStrategy>();
+        //private void AllTurretShoot(object state)
+        //{
+        //    List<TurretStrategy> turrets = new List<TurretStrategy>();
 
-            foreach (Enemy enemy in _enemies)
-                if (enemy is TurretStrategy)
-                    turrets.Add((TurretStrategy)enemy);
+        //    foreach (Enemy enemy in _enemies)
+        //        if (enemy is TurretStrategy)
+        //            turrets.Add((TurretStrategy)enemy);
                     
-            foreach (TurretStrategy turret in turrets)
-            {
-                Circle projectile = turret.Shoot();
-                _projectiles.Add(projectile);
-            }
-        }
+        //    foreach (TurretStrategy turret in turrets)
+        //    {
+        //        Circle projectile = turret.Shoot();
+        //        _projectiles.Add(projectile);
+        //    }
+        //}
 
         private void PlayerIntersections()
         {
@@ -551,8 +563,6 @@ namespace First_Playable_Roman.Scenes
         private void Restart()
         {
             Core.ExitOnEscape = false;
-
-            _currentScene = "Room1";
 
             _roomBounds = new Rectangle(
                 (int)_tilemap.TileWidth,

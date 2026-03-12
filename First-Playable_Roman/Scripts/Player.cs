@@ -14,8 +14,17 @@ namespace First_Playable_Roman.Scripts
         public string Name { get; set; }
         public int _speed;
         public AnimatedSprite Sprite { get; private set; }
+        public Rectangle Bounds { get; private set; }
 
         public bool _isShowHitboxes = false;
+
+        public Player(string name, int hp, int xPos, int yPos, int speed, AnimatedSprite playerSprite) : base(xPos, yPos)
+        {
+            Name = name;
+            Health = new Health(hp);
+            _speed = speed;
+
+        }
 
         public void TakeDamage(int damage)
         {
@@ -27,12 +36,16 @@ namespace First_Playable_Roman.Scripts
             enemy.TakeDamage(Health.CurrentHealth);
         }
 
-        public Player(string name, int hp, int xPos, int yPos, int speed, AnimatedSprite playerSprite) : base(xPos, yPos)
+        private void Draw()
         {
-            Name = name;
-            Health = new Health(hp);
-            _speed = speed;
-
+            if (Sprite != null)
+            {
+                Sprite.Draw(Core.SpriteBatch, _position);
+            }
+            if (_isShowHitboxes)
+            {
+                Core.DrawRectangleOutline(Bounds, Color.Red);
+            }
         }
 
         public void PlayerInput(Rectangle roomBounds)
@@ -63,8 +76,8 @@ namespace First_Playable_Roman.Scripts
             if (keyboard.IsKeyDown(Keys.D) || keyboard.IsKeyDown(Keys.Right)) playerInputX++;
 
             // Apply input to position
-            _position.X += playerInputX * _speed;
-            _position.Y += playerInputY * _speed;
+
+            _position = new Vector2(playerInputX * _speed, playerInputY * _speed);
 
             // Clamp using playable room bounds so continuous input won't cause jitter.
             int minX = roomBounds.Left;
@@ -77,7 +90,14 @@ namespace First_Playable_Roman.Scripts
 
             if(keyboard.WasKeyJustPressed(Keys.T))
             {
-                _isShowHitboxes = !_isShowHitboxes;
+                if(_isShowHitboxes)
+                {
+                    _isShowHitboxes = false;
+                }
+                else
+                {
+                    _isShowHitboxes = true;
+                }
             }
 
             // If the M key is pressed, toggle mute state for audio.
@@ -100,6 +120,5 @@ namespace First_Playable_Roman.Scripts
                 Core.Audio.SoundEffectVolume -= 0.1f;
             }
         }
-
     }
 }

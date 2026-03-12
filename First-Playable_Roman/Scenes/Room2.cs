@@ -45,12 +45,6 @@ namespace First_Playable_Roman.Scenes
         // The SpriteFont Description used to draw text.
         private SpriteFont _font;
 
-        // Defines the position to draw the score text at.
-        private Vector2 _healthTextPosition;
-
-        // Defines the origin used when drawing the score text.
-        private Vector2 _healthTextOrigin;
-
         public override void Initialize()
         {
             // TODO: Add your initialization logic here
@@ -264,19 +258,6 @@ namespace First_Playable_Roman.Scenes
             if (_state == GameState.Playing && _playerSprite != null)
             {
                 _playerSprite.Draw(Core.SpriteBatch, _playerPosition);
-
-                // Draw the score
-                Core.SpriteBatch.DrawString(
-                    _font,              // spriteFont
-                    $"Health: {_player.Health.CurrentHealth}", // text
-                    _healthTextPosition, // position
-                    Color.White,        // color
-                    0.0f,               // rotation
-                    _healthTextOrigin,   // origin
-                    1.5f,               // scale
-                    SpriteEffects.None, // effects
-                    0.0f                // layerDepth
-                );
             }
             else if (_state == GameState.GameOver)
             {
