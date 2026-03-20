@@ -176,8 +176,12 @@ namespace First_Playable_Roman.Scenes
                 Core.ChangeScene(new TitleScene());
 
             PlayerIntersections();
-            PlayerInput();
-                
+
+            if (_player != null && _obstacles != null)
+            {
+                _player.PlayerInput(_roomBounds, _obstacles);
+            }
+
             if (_player != null)
                 _playerPosition = new Vector2(_player._position.X, _player._position.Y);
         }
@@ -208,14 +212,8 @@ namespace First_Playable_Roman.Scenes
             {
                 Debug.Print("Pressed T to show Hitboxes");
 
-                Core.DrawRectangleOutline(new Rectangle(
-                    (int)_playerPosition.X,
-                    (int)_playerPosition.Y,
-                    (int)_playerSprite.Width,
-                    (int)_playerSprite.Height
-                ), Color.Red
-                );
-                for(int i = 0; i < _obstacles.Count; i++)
+                Core.DrawRectangleOutline(_player.GetHitbox(), Color.Red);
+                for (int i = 0; i < _obstacles.Count; i++)
                     Core.DrawRectangleOutline(_obstacles[i], Color.Red);
                 for(int i = 0; i < _slimePositions.Count; i++)
                     Core.DrawRectangleOutline(new Rectangle(
@@ -289,67 +287,6 @@ namespace First_Playable_Roman.Scenes
             base.Draw(gameTime);
         }
 
-        public void PlayerInput()
-        {
-            KeyboardInfo keyboard = Core.Input.Keyboard;
-            
-            // Skip player input when game over or player missing.
-            if (_state == GameState.GameOver || _player == null || _playerSprite == null)
-                return;
-
-            int playerInputX = 0;
-            int playerInputY = 0;
-
-            if (keyboard.IsKeyDown(Keys.Space))
-            {
-                _player._speed = 4;
-            }
-            else
-            {
-                _player._speed = 2;
-            }
-
-            if (keyboard.IsKeyDown(Keys.W) || keyboard.IsKeyDown(Keys.Up)) playerInputY--;
-            if (keyboard.IsKeyDown(Keys.S) || keyboard.IsKeyDown(Keys.Down)) playerInputY++;
-            if (keyboard.IsKeyDown(Keys.A) || keyboard.IsKeyDown(Keys.Left)) playerInputX--;
-            if (keyboard.IsKeyDown(Keys.D) || keyboard.IsKeyDown(Keys.Right)) playerInputX++;
-
-            // Apply input to position
-            _player._position.X += playerInputX * _player._speed;
-            _player._position.Y += playerInputY * _player._speed;
-
-            // Clamp using playable room bounds so continuous input won't cause jitter.
-            int minX = _roomBounds.Left;
-            int minY = _roomBounds.Top;
-            int maxX = _roomBounds.Right - (int)_playerSprite.Width;
-            int maxY = _roomBounds.Bottom - (int)_playerSprite.Height;
-
-            _player._position.X = Math.Clamp(_player._position.X, minX, Math.Max(minX, maxX));
-            _player._position.Y = Math.Clamp(_player._position.Y, minY, Math.Max(minY, maxY));
-
-
-
-            // If the M key is pressed, toggle mute state for audio.
-            if (keyboard.WasKeyJustPressed(Keys.M))
-            {
-                Core.Audio.ToggleMute();
-            }
-
-            // If the + button is pressed, increase the volume.
-            if (keyboard.WasKeyJustPressed(Keys.OemPlus))
-            {
-                Core.Audio.SongVolume += 0.1f;
-                Core.Audio.SoundEffectVolume += 0.1f;
-            }
-
-            // If the - button was pressed, decrease the volume.
-            if (keyboard.WasKeyJustPressed(Keys.OemMinus))
-            {
-                Core.Audio.SongVolume -= 0.1f;
-                Core.Audio.SoundEffectVolume -= 0.1f;
-            }
-        }
-
         //private void AllTurretShoot(object state)
         //{
         //    List<TurretStrategy> turrets = new List<TurretStrategy>();
@@ -367,10 +304,12 @@ namespace First_Playable_Roman.Scenes
 
         private void PlayerIntersections()
         {
+
+
             Circle playerBounds = new Circle(
-                (int)(_playerPosition.X + (_playerSprite.Width * 0.5f)),
-                (int)(_playerPosition.Y + (_playerSprite.Height * 0.5f)),
-                (int)(_playerSprite.Width * 0.5f)
+                (int)(_playerPosition.X + (_player.HitboxWidth * 0.5f)),
+                (int)(_playerPosition.Y + (_player.HitboxHeight * 0.5f)),
+                (int)(_player.HitboxWidth * 0.5f)
             );
 
             if (!hasKnife) // check if already has a knife
@@ -579,7 +518,43 @@ namespace First_Playable_Roman.Scenes
             Core.Audio.PlaySong(_themeSong);
             Core.Audio.SongVolume = 0.3f;
 
-            _player = new Player("Player", 100, 565, 0, 10, _playerSprite);
+            int[] tilesInts = _tilemap.GetTilesIDs();
+
+            _obstaclesTileIDs = new List<int>
+            {
+                03,
+                04,
+                07,
+                08,
+                11,
+                59,
+                63,
+                64
+            };
+
+            _obstacles = new List<Rectangle>();
+
+            for(int i = 0; i < tilesInts.Length; i++)
+            {
+                if(_obstaclesTileIDs.Contains(tilesInts[i]))
+                {
+                    int x = i % _tilemap.Columns;
+                    int y = (int)Math.Floor((double)(i / _tilemap.Columns));
+                    
+                    _obstacles.Add(new Rectangle(
+                                (int)(x * _tilemap.TileWidth),
+                                (int)(y * _tilemap.TileHeight),
+                                (int)_tilemap.TileWidth,
+                                (int)_tilemap.TileHeight
+                    ));
+                }
+            }
+
+            // Ќайти безопасную стартовую позицию дл€ игрока
+            Vector2 safePlayerPosition = FindSafePosition(_roomBounds, _obstacles, (int)_playerSprite.Width, (int)_playerSprite.Height);
+            
+            _player = new Player("Player", 100, (int)safePlayerPosition.X, (int)safePlayerPosition.Y, 1, _playerSprite);
+            
             _enemies = new List<Enemy>
             {
                 new LurkingStrategy(100, 100, 5, 5),
@@ -606,38 +581,6 @@ namespace First_Playable_Roman.Scenes
             };
             _keyPosition = new Vector2(800, 400);
 
-            int[] tilesInts = _tilemap.GetTilesIDs();
-
-            _obstaclesTileIDs = new List<int>
-            {
-                03,
-                04,
-                07,
-                08,
-                11,
-                57,
-                63,
-                64
-            };
-
-            _obstacles = new List<Rectangle>();
-
-            for(int i = 0; i < tilesInts.Length; i++)
-            {
-                if(_obstaclesTileIDs.Contains(tilesInts[i]))
-                {
-                    int x = i % _tilemap.Columns;
-                    int y = (int)Math.Floor((double)(i / _tilemap.Columns));
-                    
-                    _obstacles.Add(new Rectangle(
-                        x,
-                        y,
-                        (int)_tilemap.TileWidth,
-                        (int)_tilemap.TileHeight
-                    ));
-                }
-            }
-
             // Set the position of the score text to align to the left edge of the
             // room bounds, and to vertically be at the center of the first tile.
             _healthTextPosition = new Vector2(_roomBounds.Left, _tilemap.TileHeight * 0.5f);
@@ -657,6 +600,34 @@ namespace First_Playable_Roman.Scenes
             _hasKnifeTextOrigin = new Vector2(0, hasKnifeTextYOrigin);
 
             _state = GameState.Playing;
+        }
+
+        // Ќовый метод дл€ поиска безопасной позиции
+        private Vector2 FindSafePosition(Rectangle roomBounds, List<Rectangle> obstacles, int entityWidth, int entityHeight)
+        {
+            // ѕопробуем найти свободное место, начина€ с центра комнаты
+            int centerX = roomBounds.Left + (roomBounds.Width / 2) - (entityWidth / 2);
+            int centerY = roomBounds.Top + (roomBounds.Height / 2) - (entityHeight / 2);
+
+            Rectangle testRect = new Rectangle(centerX, centerY, entityWidth, entityHeight);
+    
+            // ѕровер€ем, свободна ли центральна€ позици€
+            bool isSafe = true;
+            foreach (Rectangle obstacle in obstacles)
+            {
+                if (testRect.Intersects(obstacle))
+                {
+                    isSafe = false;
+                    break;
+                }
+            }
+
+            if (isSafe)
+            {
+                return new Vector2(centerX, centerY);
+            }
+
+            return new Vector2(roomBounds.Left + 10, roomBounds.Top + 10);
         }
     }
 }

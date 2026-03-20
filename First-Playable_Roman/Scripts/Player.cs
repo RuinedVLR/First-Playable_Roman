@@ -1,9 +1,11 @@
 ﻿using Microsoft.Xna.Framework;
 using Microsoft.Xna.Framework.Input;
 using System;
+using System.Collections.Generic;
 using MonoGameLibrary.Input;
 using MonoGameLibrary;
 using First_Playable_Roman.Scripts;
+using First_Playable_Roman.Scenes;
 using MonoGameLibrary.Graphics;
 
 namespace First_Playable_Roman.Scripts
@@ -16,6 +18,11 @@ namespace First_Playable_Roman.Scripts
         public AnimatedSprite Sprite { get; private set; }
         public Rectangle Bounds { get; private set; }
 
+        public int HitboxWidth { get; private set; }
+        public int HitboxHeight { get; private set; }
+
+        private Vector2 _hitboxOffset;
+
         public bool _isShowHitboxes = false;
 
         public Player(string name, int hp, int xPos, int yPos, int speed, AnimatedSprite playerSprite) : base(xPos, yPos)
@@ -23,7 +30,22 @@ namespace First_Playable_Roman.Scripts
             Name = name;
             Health = new Health(hp);
             _speed = speed;
+            Sprite = playerSprite;
+            
+            HitboxWidth = 80;
+            HitboxHeight = 80;
 
+            if (Sprite != null)
+            {
+                _hitboxOffset = new Vector2(
+                    (Sprite.Width - HitboxWidth) * 0.5f,
+                    (Sprite.Height - HitboxHeight) * 0.5f
+                );
+            }
+            else
+            {
+                _hitboxOffset = Vector2.Zero;
+            }
         }
 
         public void TakeDamage(int damage)
@@ -48,15 +70,24 @@ namespace First_Playable_Roman.Scripts
             }
         }
 
-        public void PlayerInput(Rectangle roomBounds)
+        // Returns Player hitbox centered on sprite
+        public Rectangle GetHitbox()
+        {
+            return new Rectangle(
+                (int)(_position.X + _hitboxOffset.X),
+                (int)(_position.Y + _hitboxOffset.Y),
+                HitboxWidth,
+                HitboxHeight
+            );
+        }
+
+        public void PlayerInput(Rectangle roomBounds, List<Rectangle> obstacles)
         {
             // Skip player input when game over or player missing.
-            if (Game1._state == Game1.GameState.GameOver || this == null || Sprite == null)
+            if (Rooms._state == Rooms.GameState.GameOver || Sprite == null)
                 return;
 
             KeyboardInfo keyboard = Core.Input.Keyboard;
-
-            
 
             int playerInputX = 0;
             int playerInputY = 0;
@@ -75,29 +106,86 @@ namespace First_Playable_Roman.Scripts
             if (keyboard.IsKeyDown(Keys.A) || keyboard.IsKeyDown(Keys.Left)) playerInputX--;
             if (keyboard.IsKeyDown(Keys.D) || keyboard.IsKeyDown(Keys.Right)) playerInputX++;
 
-            // Apply input to position
+            Vector2 oldPosition = _position;
 
-            _position = new Vector2(playerInputX * _speed, playerInputY * _speed);
+            _position.X += playerInputX * _speed;
 
-            // Clamp using playable room bounds so continuous input won't cause jitter.
-            int minX = roomBounds.Left;
-            int minY = roomBounds.Top;
-            int maxX = roomBounds.Right - (int)Sprite.Width;
-            int maxY = roomBounds.Bottom - (int)Sprite.Height;
+            // X collision check
+            Rectangle playerRectX = new Rectangle(
+                (int)(_position.X + _hitboxOffset.X),
+                (int)(_position.Y + _hitboxOffset.Y),
+                HitboxWidth,
+                HitboxHeight
+            );
+
+            bool hasCollisionX = false;
+            if (obstacles != null)
+            {
+                foreach (Rectangle obstacle in obstacles)
+                {
+                    if (playerRectX.Intersects(obstacle))
+                    {
+                        hasCollisionX = true;
+                        break;
+                    }
+                }
+            }
+
+            // X axis collision response
+            if (hasCollisionX)
+            {
+                _position.X = oldPosition.X;
+            }
+
+            _position.Y += playerInputY * _speed;
+
+            // Y collision check
+            Rectangle playerRectY = new Rectangle(
+                (int)(_position.X + _hitboxOffset.X),
+                (int)(_position.Y + _hitboxOffset.Y),
+                HitboxWidth,
+                HitboxHeight
+            );
+
+            bool hasCollisionY = false;
+            if (obstacles != null)
+            {
+                foreach (Rectangle obstacle in obstacles)
+                {
+                    if (playerRectY.Intersects(obstacle))
+                    {
+                        hasCollisionY = true;
+                        break;
+                    }
+                }
+            }
+
+            // Y axis collision response
+            if (hasCollisionY)
+            {
+                _position.Y = oldPosition.Y;
+            }
+
+            // Hitbox update
+            Bounds = new Rectangle(
+                (int)(_position.X + _hitboxOffset.X),
+                (int)(_position.Y + _hitboxOffset.Y),
+                HitboxWidth,
+                HitboxHeight
+            );
+
+            // Clamp using playable room bounds
+            int minX = roomBounds.Left - (int)_hitboxOffset.X;
+            int minY = roomBounds.Top - (int)_hitboxOffset.Y;
+            int maxX = roomBounds.Right - HitboxWidth - (int)_hitboxOffset.X;
+            int maxY = roomBounds.Bottom - HitboxHeight - (int)_hitboxOffset.Y;
 
             _position.X = Math.Clamp(_position.X, minX, Math.Max(minX, maxX));
             _position.Y = Math.Clamp(_position.Y, minY, Math.Max(minY, maxY));
 
             if(keyboard.WasKeyJustPressed(Keys.T))
             {
-                if(_isShowHitboxes)
-                {
-                    _isShowHitboxes = false;
-                }
-                else
-                {
-                    _isShowHitboxes = true;
-                }
+                _isShowHitboxes = !_isShowHitboxes;
             }
 
             // If the M key is pressed, toggle mute state for audio.

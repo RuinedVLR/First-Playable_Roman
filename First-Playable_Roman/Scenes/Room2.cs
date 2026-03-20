@@ -118,7 +118,7 @@ namespace First_Playable_Roman.Scenes
 
             
 
-            PlayerInput();
+            //PlayerInput();
             if (_player != null)
                 _playerPosition = new Vector2(_player._position.X, _player._position.Y);
 
