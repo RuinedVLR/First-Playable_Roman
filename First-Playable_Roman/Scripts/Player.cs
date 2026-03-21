@@ -25,15 +25,19 @@ namespace First_Playable_Roman.Scripts
 
         public bool _isShowHitboxes = false;
 
+        public BowSystem Bow { get; private set; }
+        public bool HasBow { get; set; }
+
         public Player(string name, int hp, int xPos, int yPos, int speed, AnimatedSprite playerSprite) : base(xPos, yPos)
         {
             Name = name;
             Health = new Health(hp);
             _speed = speed;
             Sprite = playerSprite;
+            HasBow = false;
             
-            HitboxWidth = 80;
-            HitboxHeight = 80;
+            HitboxWidth = 64;
+            HitboxHeight = 64;
 
             if (Sprite != null)
             {
@@ -46,6 +50,12 @@ namespace First_Playable_Roman.Scripts
             {
                 _hitboxOffset = Vector2.Zero;
             }
+        }
+
+        public void EquipBow(Sprite bowSprite)
+        {
+            Bow = new BowSystem(bowSprite);
+            HasBow = true;
         }
 
         public void TakeDamage(int damage)
@@ -81,7 +91,7 @@ namespace First_Playable_Roman.Scripts
             );
         }
 
-        public void PlayerInput(Rectangle roomBounds, List<Rectangle> obstacles)
+        public void PlayerInput(Rectangle roomBounds, List<Rectangle> obstacles, List<Enemy> enemies)
         {
             // Skip player input when game over or player missing.
             if (Rooms._state == Rooms.GameState.GameOver || Sprite == null)
@@ -92,13 +102,28 @@ namespace First_Playable_Roman.Scripts
             int playerInputX = 0;
             int playerInputY = 0;
 
-            if (keyboard.IsKeyDown(Keys.Space))
+            // Bow aiming and shooting logic
+            if (HasBow && Bow != null)
             {
-                _speed = 4;
+                if (keyboard.IsKeyDown(Keys.Space))
+                {
+                    _speed = 1; // Speed down when aiming
+                }
+                else
+                {
+                    _speed = 2;
+                }
             }
             else
             {
-                _speed = 2;
+                if (keyboard.IsKeyDown(Keys.Space))
+                {
+                    _speed = 4;
+                }
+                else
+                {
+                    _speed = 2;
+                }
             }
 
             if (keyboard.IsKeyDown(Keys.W) || keyboard.IsKeyDown(Keys.Up)) playerInputY--;

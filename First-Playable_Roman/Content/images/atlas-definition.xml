@@ -29,6 +29,12 @@
 	<Regions>
 		<Region name="Key" x="0" y="0" width="500" height="500"/>
 	</Regions>
+	<Texture>images/BowAtlas</Texture>
+	<Regions>
+		<Region name="Bow" x="3" y="0" width="56" height="48"/>
+		<Region name="Arrow" x="269" y="0" width="35" height="48"/>
+	</Regions>
+	
 	<Animations>
 		<Animation name="Player-animation" delay="200">
 			<Frame region="Player-1" />
