@@ -4,7 +4,6 @@ using System;
 using System.Collections.Generic;
 using MonoGameLibrary.Input;
 using MonoGameLibrary;
-using First_Playable_Roman.Scripts;
 using First_Playable_Roman.Scenes;
 using MonoGameLibrary.Graphics;
 
@@ -27,6 +26,7 @@ namespace First_Playable_Roman.Scripts
 
         public BowSystem Bow { get; private set; }
         public bool HasBow { get; set; }
+        public bool HasKnife { get; set; }
 
         public Player(string name, int hp, int xPos, int yPos, int speed, AnimatedSprite playerSprite) : base(xPos, yPos)
         {
@@ -35,6 +35,7 @@ namespace First_Playable_Roman.Scripts
             _speed = speed;
             Sprite = playerSprite;
             HasBow = false;
+            HasKnife = false;
             
             HitboxWidth = 64;
             HitboxHeight = 64;
@@ -114,16 +115,14 @@ namespace First_Playable_Roman.Scripts
                     _speed = 2;
                 }
             }
-            else
+
+            if (keyboard.IsKeyDown(Keys.LeftShift) && !keyboard.IsKeyDown(Keys.Space))
             {
-                if (keyboard.IsKeyDown(Keys.Space))
-                {
-                    _speed = 4;
-                }
-                else
-                {
-                    _speed = 2;
-                }
+                _speed = 4;
+            }
+            else if(!keyboard.IsKeyDown(Keys.Space))
+            {
+                _speed = 2;
             }
 
             if (keyboard.IsKeyDown(Keys.W) || keyboard.IsKeyDown(Keys.Up)) playerInputY--;
@@ -198,15 +197,6 @@ namespace First_Playable_Roman.Scripts
                 HitboxWidth,
                 HitboxHeight
             );
-
-            // Clamp using playable room bounds
-            int minX = roomBounds.Left - (int)_hitboxOffset.X;
-            int minY = roomBounds.Top - (int)_hitboxOffset.Y;
-            int maxX = roomBounds.Right - HitboxWidth - (int)_hitboxOffset.X;
-            int maxY = roomBounds.Bottom - HitboxHeight - (int)_hitboxOffset.Y;
-
-            _position.X = Math.Clamp(_position.X, minX, Math.Max(minX, maxX));
-            _position.Y = Math.Clamp(_position.Y, minY, Math.Max(minY, maxY));
 
             if(keyboard.WasKeyJustPressed(Keys.T))
             {

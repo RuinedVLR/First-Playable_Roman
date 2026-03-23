@@ -1,4 +1,5 @@
 using First_Playable_Roman.Scripts;
+using First_Playable_Roman.Scripts.Items;
 using First_Playable_Roman.Scripts.Movements;
 using First_Playable_Roman.Scripts.Strategies;
 using Microsoft.Xna.Framework;
@@ -18,26 +19,23 @@ using System.Threading;
 
 namespace First_Playable_Roman.Scenes
 {
-    public class Rooms : Scene
+    public abstract class Rooms : Scene
     {
         private AnimatedSprite _playerSprite;
         private AnimatedSprite _slimeSprite;
 
-        private Sprite _knifeSprite;
-        private Sprite _heartSprite;
-        private Sprite _keySprite;
+        protected Sprite _knifeSprite;
+        protected Sprite _heartSprite;
+        protected Sprite _keySprite;
 
-        private List<Vector2> _knifePositions;
+        protected List<KnifeItem> _knives;
+        protected List<HeartItem> _hearts;
+        protected KeyItem _key;
 
-        private List<Vector2> _heartPositions;
-        private Vector2 _keyPosition;
+        protected Player _player;
+        protected Vector2 _playerPosition;
 
-        private bool hasKnife;
-
-        private Player _player;
-        private Vector2 _playerPosition;
-
-        private List<Enemy> _enemies;
+        protected List<Enemy> _enemies;
 
         // Tracks the position of the slime.
         private List<Vector2> _slimePositions;
@@ -102,6 +100,11 @@ namespace First_Playable_Roman.Scenes
             _playerPosition = playerPosition;
         }
 
+        // Abstract method to be implemented by child classes (Room1, Room2, etc.)
+        protected abstract void InitializeItems();
+
+        protected abstract void InitializeEnemies();
+
         public override void LoadContent()
         {
             // TODO: use this.Content to load your game content here
@@ -112,11 +115,8 @@ namespace First_Playable_Roman.Scenes
             _slimeSprite = atlas.CreateAnimatedSprite("Slime-animation");
 
             _knifeSprite = atlas.CreateSprite("Knife");
-            _knifeSprite.Scale = new Vector2(0.2f, 0.15f);
             _heartSprite = atlas.CreateSprite("Heart");
-            _heartSprite.Scale = new Vector2(0.2f, 0.2f);
             _keySprite = atlas.CreateSprite("Key");
-            _keySprite.Scale = new Vector2(0.2f, 0.2f);
 
             _bowSprite = atlas.CreateSprite("Bow");
             _bowSprite.Scale = new Vector2(2f, 2f);
@@ -186,6 +186,9 @@ namespace First_Playable_Roman.Scenes
             if (GamePad.GetState(PlayerIndex.One).Buttons.Back == ButtonState.Pressed || Keyboard.GetState().IsKeyDown(Keys.Escape))
                 Core.ChangeScene(new TitleScene());
 
+            // Check room transitions
+            CheckRoomTransitions();
+
             PlayerIntersections();
 
             if (_player != null && _obstacles != null)
@@ -196,7 +199,7 @@ namespace First_Playable_Roman.Scenes
                 {
                     // Update bow reload time
                     _player.Bow.Update(gameTime);
-                    
+
                     _player.Bow.UpdateAim(_player._position, _enemies);
                 }
 
@@ -217,7 +220,7 @@ namespace First_Playable_Roman.Scenes
                         }
                     }
 
-                    // Check space go up (release) to shoot - только если можно стрелять
+                    // Check space go up (release) to shoot
                     if (_wasSpacePressed && !isSpaceDown && _player.Bow.CanShoot)
                     {
                         // Create arrow
@@ -241,10 +244,18 @@ namespace First_Playable_Roman.Scenes
                 bool hitEnemy = false;
                 for (int j = 0; j < _enemies.Count; j++)
                 {
-                    if (_arrows[i].CheckCollision(_enemies[j]))
+                    if (_enemies[j].IsActive && _arrows[i].CheckCollision(_enemies[j]))
                     {
                         _enemies[j].TakeDamage(25);
-                        _score += 50;
+
+                        // If enemy died, respawn it after a short delay
+                        if (!_enemies[j].IsActive)
+                        {
+                            _enemies[j].Respawn(_roomBounds, _tilemap.TileWidth, _tilemap.TileHeight, _tilemap.Columns, _tilemap.Rows);
+                            _slimePositions[j] = _enemies[j]._position;
+                            _slimeVelocity[j] = _enemies[j].Move();
+                        }
+
                         hitEnemy = true;
                         break;
                     }
@@ -261,6 +272,9 @@ namespace First_Playable_Roman.Scenes
                 _playerPosition = new Vector2(_player._position.X, _player._position.Y);
         }
 
+        // Abstract method for room-specific transitions
+        protected abstract void CheckRoomTransitions();
+
         public override void Draw(GameTime gameTime)
         {
             Core.GraphicsDevice.Clear(Color.CornflowerBlue);
@@ -274,18 +288,27 @@ namespace First_Playable_Roman.Scenes
 
             // Draw Enemies
             for (int i = 0; i < _slimePositions.Count; i++)
-                _slimeSprite?.Draw(Core.SpriteBatch, _slimePositions[i]);
+            {
+                if (i < _enemies.Count && _enemies[i].IsActive)
+                {
+                    _slimeSprite?.Draw(Core.SpriteBatch, _slimePositions[i]);
+                }
+            }
 
-            // Draw Knifes
-            for (int i = 0; i < _knifePositions.Count; i++)
-                _knifeSprite?.Draw(Core.SpriteBatch, _knifePositions[i]);
+            // Draw Items
+            if (_knives != null)
+            {
+                foreach (KnifeItem knife in _knives)
+                    knife.Draw();
+            }
 
-            // Draw Hearts
-            for (int i = 0; i < _heartPositions.Count; i++)
-                _heartSprite?.Draw(Core.SpriteBatch, _heartPositions[i]);
+            if (_hearts != null)
+            {
+                foreach (HeartItem heart in _hearts)
+                    heart.Draw();
+            }
 
-            // Draw Key
-            _keySprite?.Draw(Core.SpriteBatch, _keyPosition);
+            _key?.Draw();
 
             // Draw player (before bow and arrows)
             if (_state == GameState.Playing && _playerSprite != null)
@@ -309,9 +332,14 @@ namespace First_Playable_Roman.Scenes
             {
                 Debug.Print("Pressed T to show Hitboxes");
 
+                // Draw player hitbox
                 Core.DrawRectangleOutline(_player.GetHitbox(), Color.Red);
+
+                // Draw obstacles hitboxes
                 for (int i = 0; i < _obstacles.Count; i++)
                     Core.DrawRectangleOutline(_obstacles[i], Color.Red);
+
+                // Draw slime hitboxes
                 for (int i = 0; i < _slimePositions.Count; i++)
                     Core.DrawRectangleOutline(new Rectangle(
                         (int)_slimePositions[i].X,
@@ -320,6 +348,45 @@ namespace First_Playable_Roman.Scenes
                         (int)_slimeSprite.Height
                     ), Color.Red
                 );
+
+                // Draw knife hitboxes
+                if (_knives != null)
+                {
+                    foreach (KnifeItem knife in _knives)
+                    {
+                        if (!knife.IsCollected)
+                        {
+                            Core.DrawRectangleOutline(knife.GetBounds(), Color.Yellow);
+                        }
+                    }
+                }
+
+                // Draw heart hitboxes
+                if (_hearts != null)
+                {
+                    foreach (HeartItem heart in _hearts)
+                    {
+                        if (!heart.IsCollected)
+                        {
+                            Core.DrawRectangleOutline(heart.GetBounds(), Color.LightGreen);
+                        }
+                    }
+                }
+
+                // Draw key hitbox
+                if (_key != null && !_key.IsCollected)
+                {
+                    Core.DrawRectangleOutline(_key.GetBounds(), Color.Blue);
+                }
+
+                // Draw arrow hitboxes
+                foreach (Arrow arrow in _arrows)
+                {
+                    if (arrow.IsActive)
+                    {
+                        Core.DrawRectangleOutline(arrow.GetBounds(), Color.Orange);
+                    }
+                }
             }
 
             // Draw UI text (always on top)
@@ -352,7 +419,7 @@ namespace First_Playable_Roman.Scenes
 
                 Core.SpriteBatch.DrawString(
                     _font,
-                    $"Has Knife: {(hasKnife ? "Yes" : "No")}",
+                    $"Has Knife: {(_player.HasKnife ? "Yes" : "No")}",
                     new Vector2(_healthTextPosition.X, _healthTextPosition.Y + 40), // Position below health text
                     Color.White,
                     0.0f,
@@ -382,20 +449,10 @@ namespace First_Playable_Roman.Scenes
             base.Draw(gameTime);
         }
 
-        //private void AllTurretShoot(object state)
-        //{
-        //    List<TurretStrategy> turrets = new List<TurretStrategy>();
-
-        //    foreach (Enemy enemy in _enemies)
-        //        if (enemy is TurretStrategy)
-        //            turrets.Add((TurretStrategy)enemy);
-
-        //    foreach (TurretStrategy turret in turrets)
-        //    {
-        //        Circle projectile = turret.Shoot();
-        //        _projectiles.Add(projectile);
-        //    }
-        //}
+        public void AddScore(int points)
+        {
+            _score += points;
+        }
 
         private void PlayerIntersections()
         {
@@ -405,135 +462,71 @@ namespace First_Playable_Roman.Scenes
                 (int)(_player.HitboxWidth * 0.5f)
             );
 
-            if (!hasKnife) // check if already has a knife
+            // Check knife collisions
+            if (_knives != null)
             {
-                for (int i = 0; i < _knifePositions.Count; i++)
+                foreach (KnifeItem knife in _knives)
                 {
-                    Vector2 knifePos = _knifePositions[i];
-
-                    Circle knifeBounds = new Circle(
-                        (int)(knifePos.X + _knifeSprite.Width * 0.5f),
-                        (int)(knifePos.Y + _knifeSprite.Height * 0.5f),
-                        (int)(_knifeSprite.Width * 0.5f)
-                    );
-
-                    if (playerBounds.Intersects(knifeBounds))
+                    if (knife.CheckCollision(playerBounds))
                     {
-                        hasKnife = true;
+                        knife.Collect(_player);
 
-                        // get rid of the knife
-                        _knifePositions[i] = new Vector2(-9999, -9999);
-
-                        // sound effect
                         if (_hitSoundEffect != null)
                             Core.Audio.PlaySoundEffect(_hitSoundEffect);
                     }
                 }
             }
 
-            for (int i = 0; i < _heartPositions.Count; i++)
+            // Check heart collisions
+            if (_hearts != null)
             {
-                Vector2 heartPos = _heartPositions[i];
-
-                Circle heartBounds = new Circle(
-                    (int)(heartPos.X + _heartSprite.Width * 0.5f),
-                    (int)(heartPos.Y + _heartSprite.Height * 0.5f),
-                    (int)(_heartSprite.Width * 0.5f)
-                );
-
-                if (playerBounds.Intersects(heartBounds))
+                foreach (HeartItem heart in _hearts)
                 {
-                    _player.Health.Heal(30);
+                    if (heart.CheckCollision(playerBounds))
+                    {
+                        heart.Collect(_player);
 
-                    _heartPositions[i] = new Vector2(-9999, -9999);
-
-                    if (_hitSoundEffect != null)
-                        Core.Audio.PlaySoundEffect(_hitSoundEffect);
+                        if (_hitSoundEffect != null)
+                            Core.Audio.PlaySoundEffect(_hitSoundEffect);
+                    }
                 }
             }
 
-            Vector2 keyPos = _keyPosition;
-
-            Circle keyBounds = new Circle(
-                (int)(keyPos.X + _keySprite.Width * 0.5f),
-                (int)(keyPos.Y + _keySprite.Height * 0.5f),
-                (int)(_keySprite.Width * 0.5f)
-            );
-
-            if (playerBounds.Intersects(keyBounds))
+            // Check key collision
+            if (_key != null && _key.CheckCollision(playerBounds))
             {
                 _score += 500;
-                _keyPosition = new Vector2(-9999, -9999);
+                _key.Collect(_player);
+
                 if (_hitSoundEffect != null)
                     Core.Audio.PlaySoundEffect(_hitSoundEffect);
             }
 
-            // Calculate the new position of the slime based on the velocity.
+            // Update enemy positions with collision detection
             for (int i = 0; i < _slimePositions.Count; i++)
             {
-                Vector2 newSlimePosition = _slimePositions[i] + _slimeVelocity[i];
+                if (i >= _enemies.Count || !_enemies[i].IsActive)
+                    continue;
 
-                // Use float centers / radius to avoid truncation-induced repeated collisions
-                float slimeHalfW2 = _slimeSprite?.Width * 0.5f ?? 0f;
-                float slimeHalfH2 = _slimeSprite?.Height * 0.5f ?? 0f;
+                float slimeWidth = _slimeSprite?.Width ?? 64f;
+                float slimeHeight = _slimeSprite?.Height ?? 64f;
 
-                // Center coordinates of the slime (float)
-                float centerX = newSlimePosition.X + slimeHalfW2;
-                float centerY = newSlimePosition.Y + slimeHalfH2;
+                // Update enemy position with collision detection (obstacles only, no room bounds)
+                _slimeVelocity[i] = _enemies[i].PositionAndCollision(
+                    _slimeVelocity[i],
+                    _obstacles,
+                    slimeWidth,
+                    slimeHeight
+                );
 
-                // Radius (use half of width/height consistently; pick one if circular)
-                float radius = slimeHalfW2;
+                // Update the slime position from enemy
+                _slimePositions[i] = _enemies[i]._position;
 
-                Vector2 normal = Vector2.Zero;
+                // Check collision with player
+                float centerX = _slimePositions[i].X + slimeWidth * 0.5f;
+                float centerY = _slimePositions[i].Y + slimeHeight * 0.5f;
+                float radius = slimeWidth * 0.5f;
 
-                // Top collision -- push to room top + radius (not to absolute 0)
-                if (centerY - radius < _roomBounds.Top)
-                {
-                    centerY = _roomBounds.Top + radius;
-                    normal.Y = 1f;
-                }
-                // Bottom collision
-                else if (centerY + radius > _roomBounds.Bottom)
-                {
-                    centerY = _roomBounds.Bottom - radius;
-                    normal.Y = -1f;
-                }
-
-                // Left collision -- push to room left + radius
-                if (centerX - radius < _roomBounds.Left)
-                {
-                    centerX = _roomBounds.Left + radius;
-                    normal.X = 1f;
-                }
-                // Right collision
-                else if (centerX + radius > _roomBounds.Right)
-                {
-                    centerX = _roomBounds.Right - radius;
-                    normal.X = -1f;
-                }
-
-                // Convert center back to top-left position
-                newSlimePosition = new Vector2(centerX - slimeHalfW2, centerY - slimeHalfH2);
-
-                // If the normal is anything but Vector2.Zero, reflect the velocity
-                if (normal != Vector2.Zero)
-                {
-                    normal.Normalize();
-                    _slimeVelocity[i] = Vector2.Reflect(_slimeVelocity[i], normal);
-
-                    // Play bounce sound effect on collision with room bounds
-                    if (_bounceSoundEffect != null)
-                        Core.Audio.PlaySoundEffect(_bounceSoundEffect);
-                }
-
-                _slimePositions[i] = newSlimePosition;
-
-                if (i < _enemies.Count)
-                {
-                    _enemies[i]._position = newSlimePosition;
-                }
-
-                // Rebuild slime bounding circle for overlap/interaction checks
                 Circle slimeBounds = new Circle(
                     (int)centerX,
                     (int)centerY,
@@ -542,34 +535,20 @@ namespace First_Playable_Roman.Scenes
 
                 if (playerBounds.Intersects(slimeBounds))
                 {
-                    if (!hasKnife)
+                    if (!_player.HasKnife)
+                    {
                         _player.TakeDamage(10);
+                    }
                     else
                     {
                         _score += 100;
-                        hasKnife = false;
+                        _player.HasKnife = false;
                     }
 
-                    // Respawn slime inside playable area leaving exactly one tile margin on each edge.
-                    int tileWScaled = (int)Math.Max(1, Math.Round(_tilemap.TileWidth));
-                    int tileHScaled = (int)Math.Max(1, Math.Round(_tilemap.TileHeight));
-
-                    int innerCols = Math.Max(1, _tilemap.Columns - 2);
-                    int innerRows = Math.Max(1, _tilemap.Rows - 2);
-
-                    int column = Random.Shared.Next(0, innerCols);
-                    int row = Random.Shared.Next(0, innerRows);
-
-                    // Position on tile grid inside playable area (roomX + column * tileWScaled)
-                    newSlimePosition = new Vector2(_roomBounds.Left + column * tileWScaled, _roomBounds.Top + row * tileHScaled);
-                    _slimePositions[i] = newSlimePosition;
-
-                    if (i < _enemies.Count)
-                    {
-                        _enemies[i]._position = newSlimePosition;
-                    }
-
-                    _slimeVelocity.Add(_enemies[i].Move());
+                    // Respawn enemy using method
+                    _enemies[i].Respawn(_roomBounds, _tilemap.TileWidth, _tilemap.TileHeight, _tilemap.Columns, _tilemap.Rows);
+                    _slimePositions[i] = _enemies[i]._position;
+                    _slimeVelocity[i] = _enemies[i].Move();
 
                     // Play hit sound effect on player damage
                     if (_hitSoundEffect != null)
@@ -607,7 +586,6 @@ namespace First_Playable_Roman.Scenes
             Core.ExitOnEscape = false;
 
             _score = 0;
-            hasKnife = false;
 
             _roomBounds = new Rectangle(
                 (int)_tilemap.TileWidth,
@@ -620,6 +598,10 @@ namespace First_Playable_Roman.Scenes
             TextureAtlas atlas = TextureAtlas.FromFile(Content, "images/atlas-definition.xml");
             _playerSprite = atlas.CreateAnimatedSprite("Player-animation");
             _slimeSprite = atlas.CreateAnimatedSprite("Slime-animation");
+
+            _knifeSprite = atlas.CreateSprite("Knife");
+            _heartSprite = atlas.CreateSprite("Heart");
+            _keySprite = atlas.CreateSprite("Key");
 
             _bowSprite = atlas.CreateSprite("Bow");
             _bowSprite.Scale = new Vector2(2f, 2f);
@@ -673,31 +655,22 @@ namespace First_Playable_Roman.Scenes
 
             _player.EquipBow(_bowSprite);
 
-            _enemies = new List<Enemy>
-    {
-        new LurkingStrategy(100, 100, 5, 5),
-        new LurkingStrategy(100, 100, 5, 5),
-    };
             _slimePositions = new List<Vector2>();
             _slimeVelocity = new List<Vector2>();
 
+            // Call the abstract method to initialize items (implemented in child classes)
+            InitializeItems();
+            InitializeEnemies();
+
+            // Properly position and initialize enemies
             for (int i = 0; i < _enemies.Count; i++)
             {
+                // Use Respawn to set enemy position in a safe random location
+                _enemies[i].Respawn(_roomBounds, _tilemap.TileWidth, _tilemap.TileHeight, _tilemap.Columns, _tilemap.Rows);
+                
                 _slimePositions.Add(new Vector2(_enemies[i]._position.X, _enemies[i]._position.Y));
                 _slimeVelocity.Add(_enemies[i].Move());
             }
-
-            _knifePositions = new List<Vector2>
-            {
-                new Vector2(200, 100),
-                new Vector2(300, 100)
-            };
-            _heartPositions = new List<Vector2>
-            {
-                new Vector2(500, 100),
-                new Vector2(500, 500)
-            };
-            _keyPosition = new Vector2(800, 400);
 
             // Set the position of the score text to align to the left edge of the
             // room bounds, and to vertically be at the center of the first tile.

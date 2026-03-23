@@ -150,18 +150,31 @@ namespace First_Playable_Roman.Scripts
             Position += Velocity;
         }
 
+        public Rectangle GetBounds()
+        {
+            if (_arrowSprite == null)
+            {
+                return new Rectangle((int)Position.X, (int)Position.Y, 16, 16);
+            }
+
+            int width = (int)(_arrowSprite.Region.Width * _arrowSprite.Scale.X);
+            int height = (int)(_arrowSprite.Region.Height * _arrowSprite.Scale.Y);
+
+            return new Rectangle(
+                (int)(Position.X - width * 0.5f),
+                (int)(Position.Y - height * 0.5f),
+                width,
+                height
+            );
+        }
+
         // Enemy collision detection
         public bool CheckCollision(Enemy enemy)
         {
             if (!IsActive)
                 return false;
 
-            Rectangle arrowRect = new Rectangle(
-                (int)Position.X,
-                (int)Position.Y,
-                16,
-                16
-            );
+            Rectangle arrowRect = GetBounds();
 
             Rectangle enemyRect = new Rectangle(
                 (int)enemy._position.X,
