@@ -5,6 +5,7 @@ using System.Linq;
 using System.Text;
 using System.Threading.Tasks;
 using Microsoft.Xna.Framework;
+using First_Playable_Roman.Scenes;
 
 namespace First_Playable_Roman.Scripts
 {
@@ -15,6 +16,8 @@ namespace First_Playable_Roman.Scripts
         public bool IsActive { get; set; }
         private int _maxHealth;
 
+        private Rooms _rooms;
+
         public void TakeDamage(int damage)
         {
             Health.TakeDamage(damage);
@@ -22,6 +25,7 @@ namespace First_Playable_Roman.Scripts
             // Check if enemy died
             if (Health.CurrentHealth <= 0)
             {
+                _rooms.AddScore(100);
                 IsActive = false;
             }
         }
@@ -120,12 +124,13 @@ namespace First_Playable_Roman.Scripts
             return velocity;
         }
 
-        public Enemy(int maxHp, int xPos, int yPos, int speed) : base(xPos, yPos)
+        public Enemy(int maxHp, int xPos, int yPos, int speed, Rooms room) : base(xPos, yPos)
         {
             _maxHealth = maxHp;
             Health = new Health(maxHp);           
             Speed = speed;
             IsActive = true;
+            _rooms = room;
         }
 
         public abstract Vector2 Move();

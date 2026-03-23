@@ -58,8 +58,8 @@ namespace First_Playable_Roman.Scenes
             // Use placeholder positions - they will be set properly in Restart()
             _enemies = new List<Enemy>
             {
-                new LurkingStrategy(100, 0, 0, 5),
-                new LurkingStrategy(100, 0, 0, 5),
+                new LurkingStrategy(100, 0, 0, 5, this),
+                new LurkingStrategy(100, 0, 0, 5, this),
             };
         }
 

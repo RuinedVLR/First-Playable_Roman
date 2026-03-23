@@ -463,7 +463,7 @@ namespace First_Playable_Roman.Scenes
             );
 
             // Check knife collisions
-            if (_knives != null)
+            if (_knives != null && !_player.HasKnife)
             {
                 foreach (KnifeItem knife in _knives)
                 {
@@ -565,6 +565,9 @@ namespace First_Playable_Roman.Scenes
             // Switch state
             _state = GameState.GameOver;
 
+            // Reset the score
+            _score = 0;
+
             // Stop music
             Core.Audio.PauseAudio();
 
@@ -584,8 +587,6 @@ namespace First_Playable_Roman.Scenes
         private void Restart()
         {
             Core.ExitOnEscape = false;
-
-            _score = 0;
 
             _roomBounds = new Rectangle(
                 (int)_tilemap.TileWidth,
