@@ -69,8 +69,6 @@ namespace First_Playable_Roman.Scenes
         // Defines the origin used when drawing the health text.
         private Vector2 _healthTextOrigin;
 
-        private int _score;
-
         private Vector2 _scoreTextPosition;
 
         private Vector2 _scoreTextOrigin;
@@ -86,7 +84,9 @@ namespace First_Playable_Roman.Scenes
 
         public enum GameState { Playing, GameOver }
         public static GameState _state = GameState.Playing;
-        
+
+        public static int _score;
+
         public string _currentScene;
 
         public Rooms(string tilemapPath)
@@ -94,16 +94,22 @@ namespace First_Playable_Roman.Scenes
             _tilemapPath = tilemapPath;
         }
 
-        public Rooms(Player player, Vector2 playerPosition)
+        public Rooms(Player player, Vector2 playerPosition, int score)
         {
             _player = player;
             _playerPosition = playerPosition;
+            _score = score;
         }
 
         // Abstract method to be implemented by child classes (Room1, Room2, etc.)
         protected abstract void InitializeItems();
 
         protected abstract void InitializeEnemies();
+
+        public void LoadScore(int score)
+        {
+            score = _score;
+        }
 
         public override void LoadContent()
         {
@@ -565,8 +571,7 @@ namespace First_Playable_Roman.Scenes
             // Switch state
             _state = GameState.GameOver;
 
-            // Reset the score
-            _score = 0;
+            
 
             // Stop music
             Core.Audio.PauseAudio();
@@ -613,6 +618,8 @@ namespace First_Playable_Roman.Scenes
             _arrows = new List<Arrow>();
             _wasSpacePressed = false;
 
+            
+
             Core.Audio.PlaySong(_themeSong);
             Core.Audio.SongVolume = 0.3f;
 
@@ -652,14 +659,14 @@ namespace First_Playable_Roman.Scenes
 
             _player = new Player("Player", 100, (int)safePlayerPosition.X, (int)safePlayerPosition.Y, 1, _playerSprite);
 
-            _playerPosition = new Vector2(_player._position.X, _player._position.Y);
+            //_playerPosition = new Vector2(_player._position.X, _player._position.Y);
 
             _player.EquipBow(_bowSprite);
 
             _slimePositions = new List<Vector2>();
             _slimeVelocity = new List<Vector2>();
 
-            // Call the abstract method to initialize items (implemented in child classes)
+            // Call the abstract methods to initialize items and enemies (implemented in child classes)
             InitializeItems();
             InitializeEnemies();
 

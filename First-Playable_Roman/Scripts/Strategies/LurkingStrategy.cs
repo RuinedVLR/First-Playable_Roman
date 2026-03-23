@@ -30,10 +30,5 @@ namespace First_Playable_Roman.Scripts.Strategies
 
             return slimeVelocity;
         }
-
-        //public Vector2 AssignRandomSlimeVelocity()
-        //{
-            
-        //}
     }
 }

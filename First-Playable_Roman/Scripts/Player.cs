@@ -24,6 +24,8 @@ namespace First_Playable_Roman.Scripts
 
         public bool _isShowHitboxes = false;
 
+        public int Score { get; set; }
+
         public BowSystem Bow { get; private set; }
         public bool HasBow { get; set; }
         public bool HasKnife { get; set; }

@@ -19,10 +19,11 @@ namespace First_Playable_Roman.Scenes
 {
     public class Room2 : Rooms
     {
-        public Room2(string tilemapPath, Player player, Vector2 playerPosition) : base(tilemapPath)
+        public Room2(string tilemapPath, Player player, Vector2 playerPosition, int score) : base(tilemapPath)
         {
             _player = player;
             _playerPosition = playerPosition;
+            _score = score;
         }
 
         // Defines the tilemap to draw.
@@ -80,7 +81,7 @@ namespace First_Playable_Roman.Scenes
                 );
 
                 // Switch to Room1
-                Core.ChangeScene(new Room1("images/room1-definition.xml", _player, newPosition));
+                Core.ChangeScene(new Room1("images/room1-definition.xml", _player, newPosition, _score));
             }
         }
 

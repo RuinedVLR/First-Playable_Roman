@@ -147,7 +147,7 @@ namespace First_Playable_Roman.Scripts
             if (!IsActive)
                 return;
 
-            Position += Velocity;
+            Position += Velocity * 2;
         }
 
         public Rectangle GetBounds()
@@ -157,8 +157,8 @@ namespace First_Playable_Roman.Scripts
                 return new Rectangle((int)Position.X, (int)Position.Y, 16, 16);
             }
 
-            int width = (int)(_arrowSprite.Region.Width * _arrowSprite.Scale.X);
-            int height = (int)(_arrowSprite.Region.Height * _arrowSprite.Scale.Y);
+            int width = 32;
+            int height = 32;
 
             return new Rectangle(
                 (int)(Position.X - width * 0.5f),

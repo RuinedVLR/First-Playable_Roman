@@ -15,10 +15,11 @@ namespace First_Playable_Roman.Scenes
     {
         public Room1(string tilemapPath) : base(tilemapPath) { }
 
-        public Room1(string tilemapPath, Player player, Vector2 playerPosition) : base(tilemapPath)
+        public Room1(string tilemapPath, Player player, Vector2 playerPosition, int score) : base(tilemapPath)
         {
             _player = player;
             _playerPosition = playerPosition;
+            _score = score;
         }
 
         // Defines the tilemap to draw.
@@ -68,7 +69,7 @@ namespace First_Playable_Roman.Scenes
             {
                 Vector2 newPosition = new Vector2(50, _player._position.Y);
 
-                Core.ChangeScene(new Room2("images/room2-definition.xml", _player, newPosition));
+                Core.ChangeScene(new Room2("images/room2-definition.xml", _player, newPosition, _score));
             }
         }
 
