@@ -2,7 +2,6 @@
 using First_Playable_Roman.Scenes;
 using Microsoft.Xna.Framework;
 using Microsoft.Xna.Framework.Graphics;
-using MonoGameLibrary.Graphics;
 using System.Collections.Generic;
 
 namespace First_Playable_Roman.Scripts.Movements

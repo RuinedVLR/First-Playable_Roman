@@ -1,13 +1,8 @@
-﻿using First_Playable_Roman.Scripts;
-using System;
+﻿using System;
 using System.Collections.Generic;
-using System.Linq;
-using System.Text;
-using System.Threading.Tasks;
 using Microsoft.Xna.Framework;
 using Microsoft.Xna.Framework.Graphics;
 using First_Playable_Roman.Scenes;
-using MonoGameLibrary;
 using MonoGameLibrary.Graphics;
 
 namespace First_Playable_Roman.Scripts

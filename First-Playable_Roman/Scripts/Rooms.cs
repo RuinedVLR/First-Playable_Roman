@@ -9,13 +9,10 @@ using Microsoft.Xna.Framework.Input;
 using Microsoft.Xna.Framework.Media;
 using MonoGameLibrary;
 using MonoGameLibrary.Graphics;
-using MonoGameLibrary.Input;
 using MonoGameLibrary.Scenes;
 using System;
 using System.Collections.Generic;
 using System.Diagnostics;
-using System.Linq;
-using System.Threading;
 
 namespace First_Playable_Roman.Scenes
 {
@@ -24,6 +21,7 @@ namespace First_Playable_Roman.Scenes
         private AnimatedSprite _playerSprite;
 
         private AnimatedSprite _slimeSprite;
+        private AnimatedSprite _chaserSprite;
         private Sprite _turretSprite;
 
         protected Sprite _knifeSprite;
@@ -151,6 +149,8 @@ namespace First_Playable_Roman.Scenes
 
             _playerSprite = atlas.CreateAnimatedSprite("Player-animation");
             _slimeSprite = atlas.CreateAnimatedSprite("Slime-animation");
+
+            _chaserSprite = atlas.CreateAnimatedSprite("Chaser-animation");
 
             // Create a static sprite for turret enemies (uses first slime frame as base)
             _turretSprite = atlas.CreateSprite("Turret");
@@ -430,7 +430,7 @@ namespace First_Playable_Roman.Scenes
 
             _key?.Draw();
 
-            // Draw player (before bow and arrows)
+            // Draw player
             if (_state == GameState.Playing && _playerSprite != null)
             {
                 _playerSprite.Draw(Core.SpriteBatch, _playerPosition);
@@ -645,6 +645,8 @@ namespace First_Playable_Roman.Scenes
             _playerSprite = atlas.CreateAnimatedSprite("Player-animation");
             _slimeSprite = atlas.CreateAnimatedSprite("Slime-animation");
 
+            _chaserSprite = atlas.CreateAnimatedSprite("Chaser-animation");
+
             _turretSprite = atlas.CreateSprite("Turret");
             _turretSprite.Scale = new Vector2(2f, 2f);
 
@@ -756,6 +758,12 @@ namespace First_Playable_Roman.Scenes
                     // Center turret position so the sprite is visually centered on its coordinates
                     _enemies[i]._position.X -= _enemies[i].SpriteWidth * 0.5f;
                     _enemies[i]._position.Y -= _enemies[i].SpriteHeight * 0.5f;
+                }
+                else if (_enemies[i] is ChaserStrategy)
+                {
+                    _enemies[i].SetAnimatedSprite(_chaserSprite);
+                    // Use Respawn to set enemy position in a safe random location
+                    _enemies[i].Respawn(_roomBounds, _tilemap.TileWidth, _tilemap.TileHeight, _tilemap.Columns, _tilemap.Rows);
                 }
                 else
                 {

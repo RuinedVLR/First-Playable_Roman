@@ -1,6 +1,5 @@
 ﻿using First_Playable_Roman.Scenes;
 using Microsoft.Xna.Framework;
-using System;
 
 namespace First_Playable_Roman.Scripts.Strategies
 {
