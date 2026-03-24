@@ -1,26 +1,28 @@
 ﻿using First_Playable_Roman.Scripts;
 using First_Playable_Roman.Scripts.Items;
+using First_Playable_Roman.Scripts.Movements;
 using First_Playable_Roman.Scripts.Strategies;
 using Microsoft.Xna.Framework;
+using Microsoft.Xna.Framework.Audio;
 using Microsoft.Xna.Framework.Graphics;
+using Microsoft.Xna.Framework.Input;
 using Microsoft.Xna.Framework.Media;
 using MonoGameLibrary;
 using MonoGameLibrary.Graphics;
+using MonoGameLibrary.Input;
+using MonoGameLibrary.Scenes;
+using System;
 using System.Collections.Generic;
-using System.IO;
+using System.Linq;
+using System.Threading;
 
 namespace First_Playable_Roman.Scenes
 {
     public class Room1 : Rooms
     {
-        public Room1(string tilemapPath) : base(tilemapPath) { }
-
-        public Room1(string tilemapPath, Player player, Vector2 playerPosition, int score) : base(tilemapPath)
-        {
-            _player = player;
-            _playerPosition = playerPosition;
-            _score = score;
-        }
+        public Room1(string tilemapPath) : base(tilemapPath) {}
+        
+        public Room1(string tilemapPath, Player player, Vector2 playerPosition, int score = 0) : base(tilemapPath, player, playerPosition, score) {}
 
         // Defines the tilemap to draw.
         private Tilemap _tilemap;
@@ -32,20 +34,7 @@ namespace First_Playable_Roman.Scenes
 
         protected override void InitializeItems()
         {
-            // Initialize item lists for Room1
-            _knives = new List<KnifeItem>
-            {
-                new KnifeItem(new Vector2(200, 100), _knifeSprite),
-                new KnifeItem(new Vector2(300, 100), _knifeSprite)
-            };
-
-            _hearts = new List<HeartItem>
-            {
-                new HeartItem(new Vector2(500, 100), _heartSprite, 30),
-                new HeartItem(new Vector2(500, 500), _heartSprite, 30)
-            };
-
-            _key = new KeyItem(new Vector2(800, 400), _keySprite);
+            // Items now drop from enemies
         }
 
         protected override void InitializeEnemies()
@@ -53,8 +42,8 @@ namespace First_Playable_Roman.Scenes
             // Initialize enemy list for Room1
             _enemies = new List<Enemy>
             {
-                new LurkingStrategy(100, 0, 0, 5, this),
-                new LurkingStrategy(100, 0, 0, 5, this),
+                new LurkingStrategy(0, 0, 5, this),
+                new LurkingStrategy(0, 0, 5, this),
             };
         }
 

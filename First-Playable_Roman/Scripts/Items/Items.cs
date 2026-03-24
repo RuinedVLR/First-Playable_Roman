@@ -15,11 +15,15 @@ namespace First_Playable_Roman.Scripts.Items
         protected Sprite Sprite { get; set; }
         public bool IsCollected { get; protected set; }
 
+        // When true, the item cannot be picked up until the player leaves its hitbox first
+        private bool _pickupGuard;
+
         protected Items(Vector2 position, Sprite sprite)
         {
             Position = position;
             Sprite = sprite;
             IsCollected = false;
+            _pickupGuard = true; // Enabled on spawn — player must not be overlapping to pick up
         }
 
         public virtual void Draw()
@@ -56,7 +60,22 @@ namespace First_Playable_Roman.Scripts.Items
                 (int)(itemBounds.Width * 0.5f)
             );
 
-            return playerBounds.Intersects(itemCircle);
+            bool isOverlapping = playerBounds.Intersects(itemCircle);
+
+            // If pickup guard is active, wait until the player leaves the hitbox
+            if (_pickupGuard)
+            {
+                if (!isOverlapping)
+                {
+                    // Player has left the hitbox — disable guard
+                    _pickupGuard = false;
+                }
+
+                // Block pickup while guard is active
+                return false;
+            }
+
+            return isOverlapping;
         }
 
         public virtual void Collect(Player player)

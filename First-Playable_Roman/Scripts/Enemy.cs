@@ -5,7 +5,10 @@ using System.Linq;
 using System.Text;
 using System.Threading.Tasks;
 using Microsoft.Xna.Framework;
+using Microsoft.Xna.Framework.Graphics;
 using First_Playable_Roman.Scenes;
+using MonoGameLibrary;
+using MonoGameLibrary.Graphics;
 
 namespace First_Playable_Roman.Scripts
 {
@@ -17,6 +20,50 @@ namespace First_Playable_Roman.Scripts
         private int _maxHealth;
 
         private Rooms _rooms;
+
+        // Sprite for this enemy (animated or static)
+        protected AnimatedSprite _animatedSprite;
+        protected Sprite _staticSprite;
+
+        // Width of the enemy sprite
+        public float SpriteWidth =>
+            _animatedSprite?.Width ?? _staticSprite?.Width ?? 64f;
+
+        // Height of the enemy sprite
+        public float SpriteHeight =>
+            _animatedSprite?.Height ?? _staticSprite?.Height ?? 64f;
+
+        public void SetAnimatedSprite(AnimatedSprite sprite)
+        {
+            _animatedSprite = sprite;
+            _staticSprite = null;
+        }
+
+        public void SetStaticSprite(Sprite sprite)
+        {
+            _staticSprite = sprite;
+            _animatedSprite = null;
+        }
+
+        public virtual void UpdateSprite(GameTime gameTime)
+        {
+            _animatedSprite?.Update(gameTime);
+        }
+
+        public virtual void Draw(SpriteBatch spriteBatch)
+        {
+            if (!IsActive)
+                return;
+
+            if (_animatedSprite != null)
+            {
+                _animatedSprite.Draw(spriteBatch, _position);
+            }
+            else if (_staticSprite != null)
+            {
+                _staticSprite.Draw(spriteBatch, _position);
+            }
+        }
 
         public void TakeDamage(int damage)
         {
@@ -56,7 +103,7 @@ namespace First_Playable_Roman.Scripts
             IsActive = true;
         }
 
-        public Vector2 PositionAndCollision(Vector2 velocity, List<Rectangle> obstacles, float width, float height)
+        public Vector2 PositionAndCollision(Vector2 velocity, List<Rectangle> obstacles, float width, float height, Rectangle roomBounds)
         {
             Vector2 newPosition = _position + velocity;
 
@@ -65,7 +112,30 @@ namespace First_Playable_Roman.Scripts
 
             Vector2 normal = Vector2.Zero;
 
-            // Check collision with obstacles only
+            // Clamp enemy position within room bounds
+            if (newPosition.X < roomBounds.Left)
+            {
+                newPosition.X = roomBounds.Left;
+                normal.X = 1f;
+            }
+            else if (newPosition.X + width > roomBounds.Right)
+            {
+                newPosition.X = roomBounds.Right - width;
+                normal.X = -1f;
+            }
+
+            if (newPosition.Y < roomBounds.Top)
+            {
+                newPosition.Y = roomBounds.Top;
+                normal.Y = 1f;
+            }
+            else if (newPosition.Y + height > roomBounds.Bottom)
+            {
+                newPosition.Y = roomBounds.Bottom - height;
+                normal.Y = -1f;
+            }
+
+            // Check collision with obstacles
             Rectangle enemyRect = new Rectangle(
                 (int)newPosition.X,
                 (int)newPosition.Y,
@@ -73,41 +143,44 @@ namespace First_Playable_Roman.Scripts
                 (int)height
             );
 
-            foreach (Rectangle obstacle in obstacles)
+            if (obstacles != null)
             {
-                if (enemyRect.Intersects(obstacle))
+                foreach (Rectangle obstacle in obstacles)
                 {
-                    // Calculate collision normal based on overlap
-                    int overlapLeft = enemyRect.Right - obstacle.Left;
-                    int overlapRight = obstacle.Right - enemyRect.Left;
-                    int overlapTop = enemyRect.Bottom - obstacle.Top;
-                    int overlapBottom = obstacle.Bottom - enemyRect.Top;
+                    if (enemyRect.Intersects(obstacle))
+                    {
+                        // Calculate collision normal based on overlap
+                        int overlapLeft = enemyRect.Right - obstacle.Left;
+                        int overlapRight = obstacle.Right - enemyRect.Left;
+                        int overlapTop = enemyRect.Bottom - obstacle.Top;
+                        int overlapBottom = obstacle.Bottom - enemyRect.Top;
 
-                    // Find the smallest overlap to determine the collision direction
-                    int minOverlap = Math.Min(Math.Min(overlapLeft, overlapRight), Math.Min(overlapTop, overlapBottom));
+                        // Find the smallest overlap to determine the collision direction
+                        int minOverlap = Math.Min(Math.Min(overlapLeft, overlapRight), Math.Min(overlapTop, overlapBottom));
 
-                    if (minOverlap == overlapLeft)
-                    {
-                        normal.X = -1f; // Push left
-                        newPosition.X = obstacle.Left - width;
-                    }
-                    else if (minOverlap == overlapRight)
-                    {
-                        normal.X = 1f; // Push right
-                        newPosition.X = obstacle.Right;
-                    }
-                    else if (minOverlap == overlapTop)
-                    {
-                        normal.Y = -1f; // Push up
-                        newPosition.Y = obstacle.Top - height;
-                    }
-                    else if (minOverlap == overlapBottom)
-                    {
-                        normal.Y = 1f; // Push down
-                        newPosition.Y = obstacle.Bottom;
-                    }
+                        if (minOverlap == overlapLeft)
+                        {
+                            normal.X = -1f; // Push left
+                            newPosition.X = obstacle.Left - width;
+                        }
+                        else if (minOverlap == overlapRight)
+                        {
+                            normal.X = 1f; // Push right
+                            newPosition.X = obstacle.Right;
+                        }
+                        else if (minOverlap == overlapTop)
+                        {
+                            normal.Y = -1f; // Push up
+                            newPosition.Y = obstacle.Top - height;
+                        }
+                        else if (minOverlap == overlapBottom)
+                        {
+                            normal.Y = 1f; // Push down
+                            newPosition.Y = obstacle.Bottom;
+                        }
 
-                    break; // Handle one collision at a time
+                        break; // Handle one collision at a time
+                    }
                 }
             }
 
@@ -127,12 +200,17 @@ namespace First_Playable_Roman.Scripts
         public Enemy(int maxHp, int xPos, int yPos, int speed, Rooms room) : base(xPos, yPos)
         {
             _maxHealth = maxHp;
-            Health = new Health(maxHp);           
+            Health = new Health(maxHp);
             Speed = speed;
             IsActive = true;
             _rooms = room;
         }
 
         public abstract Vector2 Move();
+
+        public Rooms GetRoom()
+        {
+            return _rooms;
+        }
     }
 }

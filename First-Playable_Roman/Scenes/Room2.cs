@@ -19,12 +19,9 @@ namespace First_Playable_Roman.Scenes
 {
     public class Room2 : Rooms
     {
-        public Room2(string tilemapPath, Player player, Vector2 playerPosition, int score) : base(tilemapPath)
-        {
-            _player = player;
-            _playerPosition = playerPosition;
-            _score = score;
-        }
+        public Room2(string tilemapPath) : base(tilemapPath) { }
+
+        public Room2(string tilemapPath, Player player, Vector2 playerPosition, int score = 0) : base(tilemapPath, player, playerPosition, score) {}
 
         // Defines the tilemap to draw.
         private Tilemap _tilemap;
@@ -36,31 +33,20 @@ namespace First_Playable_Roman.Scenes
 
         protected override void InitializeItems()
         {
-            // Initialize item lists for Room2 with different positions
-            _knives = new List<KnifeItem>
-            {
-                new KnifeItem(new Vector2(150, 200), _knifeSprite),
-                new KnifeItem(new Vector2(400, 300), _knifeSprite),
-                new KnifeItem(new Vector2(600, 150), _knifeSprite)
-            };
-
-            _hearts = new List<HeartItem>
-            {
-                new HeartItem(new Vector2(250, 400), _heartSprite, 40),
-                new HeartItem(new Vector2(700, 200), _heartSprite, 40)
-            };
-
-            _key = new KeyItem(new Vector2(900, 500), _keySprite);
+            // Items now drop from enemies
         }
 
         protected override void InitializeEnemies()
         {
-            // Initialize enemy list for Room2 with different positions and behaviors
-            // Use placeholder positions - they will be set properly in Restart()
+            // Calculate center of the room for turret placement
+            int centerX = (int)(_tilemap.TileWidth * _tilemap.Columns * 0.5f);
+            int centerY = (int)(_tilemap.TileHeight * _tilemap.Rows * 0.5f);
+
             _enemies = new List<Enemy>
             {
-                new LurkingStrategy(100, 0, 0, 5, this),
-                new LurkingStrategy(100, 0, 0, 5, this),
+                new LurkingStrategy(0, 0, 5, this),
+                new ChaserStrategy(0, 0, 4, 200f, this),
+                new TurretStrategy(centerX, centerY, this),
             };
         }
 

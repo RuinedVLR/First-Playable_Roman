@@ -1,10 +1,12 @@
 ﻿using Microsoft.Xna.Framework;
 using Microsoft.Xna.Framework.Input;
+using Microsoft.Xna.Framework.Audio;
 using System;
 using System.Collections.Generic;
 using MonoGameLibrary.Input;
 using MonoGameLibrary;
 using First_Playable_Roman.Scenes;
+using First_Playable_Roman.Scripts.Items;
 using MonoGameLibrary.Graphics;
 
 namespace First_Playable_Roman.Scripts
@@ -14,7 +16,7 @@ namespace First_Playable_Roman.Scripts
         public Health Health { get; set; }
         public string Name { get; set; }
         public int _speed;
-        public AnimatedSprite Sprite { get; private set; }
+        public AnimatedSprite Sprite { get; set; }
         public Rectangle Bounds { get; private set; }
 
         public int HitboxWidth { get; private set; }
@@ -92,6 +94,141 @@ namespace First_Playable_Roman.Scripts
                 HitboxWidth,
                 HitboxHeight
             );
+        }
+
+        // Checks for player collisions
+        public int CheckIntersections(
+            Vector2 playerPosition,
+            List<KnifeItem> knives,
+            List<HeartItem> hearts,
+            KeyItem key,
+            List<Enemy> enemies,
+            List<Vector2> slimePositions,
+            List<Vector2> slimeVelocity,
+            AnimatedSprite slimeSprite,
+            Rectangle roomBounds,
+            Tilemap tilemap,
+            SoundEffect hitSoundEffect,
+            List<Rectangle> obstacles)
+        {
+            int scoreEarned = 0;
+
+            Circle playerBounds = new Circle(
+                (int)(playerPosition.X + (HitboxWidth * 0.5f)),
+                (int)(playerPosition.Y + (HitboxHeight * 0.5f)),
+                (int)(HitboxWidth * 0.5f)
+            );
+
+            // Check knife collisions
+            if (knives != null)
+            {
+                foreach (KnifeItem knife in knives)
+                {
+                    if (knife.CheckCollision(playerBounds))
+                    {
+                        knife.Collect(this);
+
+                        if (hitSoundEffect != null)
+                            Core.Audio.PlaySoundEffect(hitSoundEffect);
+                    }
+                }
+            }
+
+            // Check heart collisions
+            if (hearts != null)
+            {
+                foreach (HeartItem heart in hearts)
+                {
+                    if (heart.CheckCollision(playerBounds))
+                    {
+                        heart.Collect(this);
+
+                        if (hitSoundEffect != null)
+                            Core.Audio.PlaySoundEffect(hitSoundEffect);
+                    }
+                }
+            }
+
+            // Check key collision
+            if (key != null && key.CheckCollision(playerBounds))
+            {
+                scoreEarned += 500;
+                key.Collect(this);
+
+                if (hitSoundEffect != null)
+                    Core.Audio.PlaySoundEffect(hitSoundEffect);
+            }
+
+            // Update enemy positions with collision detection
+            for (int i = 0; i < slimePositions.Count; i++)
+            {
+                if (i >= enemies.Count || !enemies[i].IsActive)
+                    continue;
+
+                float slimeWidth = slimeSprite?.Width ?? 64f;
+                float slimeHeight = slimeSprite?.Height ?? 64f;
+
+                // Update enemy position with collision detection against obstacles and room bounds
+                slimeVelocity[i] = enemies[i].PositionAndCollision(
+                    slimeVelocity[i],
+                    obstacles,
+                    slimeWidth,
+                    slimeHeight,
+                    roomBounds
+                );
+
+                // Update the slime position from enemy
+                slimePositions[i] = enemies[i]._position;
+
+                // Check collision with player
+                float centerX = slimePositions[i].X + slimeWidth * 0.5f;
+                float centerY = slimePositions[i].Y + slimeHeight * 0.5f;
+                float radius = slimeWidth * 0.5f;
+
+                Circle slimeBounds = new Circle(
+                    (int)centerX,
+                    (int)centerY,
+                    (int)radius
+                );
+
+                if (playerBounds.Intersects(slimeBounds))
+                {
+                    if (!HasKnife)
+                    {
+                        TakeDamage(10);
+                    }
+                    else
+                    {
+                        scoreEarned += 100;
+                        HasKnife = false;
+
+                        // Enemy killed by knife — spawn drops at enemy position
+                        Vector2 enemyDeathPos = slimePositions[i];
+                        enemies[i].TakeDamage(enemies[i].Health.CurrentHealth);
+
+                        if (!enemies[i].IsActive)
+                        {
+                            // Get the Rooms instance to spawn drops
+                            if (enemies[i] is Enemy enemy)
+                            {
+                                Rooms room = enemy.GetRoom();
+                                room?.SpawnEnemyDrop(enemyDeathPos);
+                            }
+                        }
+                    }
+
+                    // Respawn enemy using method
+                    enemies[i].Respawn(roomBounds, tilemap.TileWidth, tilemap.TileHeight, tilemap.Columns, tilemap.Rows);
+                    slimePositions[i] = enemies[i]._position;
+                    slimeVelocity[i] = enemies[i].Move();
+
+                    // Play hit sound effect on player damage
+                    if (hitSoundEffect != null)
+                        Core.Audio.PlaySoundEffect(hitSoundEffect);
+                }
+            }
+
+            return scoreEarned;
         }
 
         public void PlayerInput(Rectangle roomBounds, List<Rectangle> obstacles, List<Enemy> enemies)

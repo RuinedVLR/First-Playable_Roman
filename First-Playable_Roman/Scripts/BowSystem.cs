@@ -1,4 +1,5 @@
-﻿using Microsoft.Xna.Framework;
+﻿using First_Playable_Roman.Scripts.Movements;
+using Microsoft.Xna.Framework;
 using Microsoft.Xna.Framework.Graphics;
 using MonoGameLibrary;
 using MonoGameLibrary.Graphics;
@@ -61,6 +62,8 @@ namespace First_Playable_Roman.Scripts
 
             foreach (Enemy enemy in enemies)
             {
+                if(enemy is TurretStrategy)
+                    continue;
                 float distance = Vector2.Distance(playerPosition, enemy._position);
                 if (distance < closestDistance)
                 {
@@ -171,7 +174,7 @@ namespace First_Playable_Roman.Scripts
         // Enemy collision detection
         public bool CheckCollision(Enemy enemy)
         {
-            if (!IsActive)
+            if (!IsActive || enemy is TurretStrategy)
                 return false;
 
             Rectangle arrowRect = GetBounds();
