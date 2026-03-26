@@ -128,7 +128,7 @@ namespace First_Playable_Roman.Scripts
         public float Rotation { get; private set; }
         public bool IsActive { get; set; }
         
-        private const float Speed = 8f;
+        private const float Speed = 16f;
         private Sprite _arrowSprite;
         private const float RotationOffset = MathHelper.PiOver2;
 
@@ -150,14 +150,14 @@ namespace First_Playable_Roman.Scripts
             if (!IsActive)
                 return;
 
-            Position += Velocity * 2;
+            Position += Velocity;
         }
 
         public Rectangle GetBounds()
         {
             if (_arrowSprite == null)
             {
-                return new Rectangle((int)Position.X, (int)Position.Y, 16, 16);
+                return new Rectangle((int)Position.X, (int)Position.Y, 32, 32);
             }
 
             int width = 32;
