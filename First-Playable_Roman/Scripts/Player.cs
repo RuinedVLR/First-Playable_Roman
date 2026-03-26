@@ -8,6 +8,7 @@ using MonoGameLibrary;
 using First_Playable_Roman.Scenes;
 using First_Playable_Roman.Scripts.Items;
 using MonoGameLibrary.Graphics;
+using First_Playable_Roman.Scripts.Movements;
 
 namespace First_Playable_Roman.Scripts
 {
@@ -31,6 +32,7 @@ namespace First_Playable_Roman.Scripts
         public BowSystem Bow { get; private set; }
         public bool HasBow { get; set; }
         public bool HasKnife { get; set; }
+        public bool HasKey { get; set; }
 
         public Player(string name, int hp, int xPos, int yPos, int speed, AnimatedSprite playerSprite) : base(xPos, yPos)
         {
@@ -120,7 +122,7 @@ namespace First_Playable_Roman.Scripts
             );
 
             // Check knife collisions
-            if (knives != null)
+            if (knives != null && !HasKnife)
             {
                 foreach (KnifeItem knife in knives)
                 {
@@ -152,7 +154,7 @@ namespace First_Playable_Roman.Scripts
             // Check key collision
             if (key != null && key.CheckCollision(playerBounds))
             {
-                scoreEarned += 500;
+                HasKey = true;
                 key.Collect(this);
 
                 if (hitSoundEffect != null)
@@ -180,7 +182,6 @@ namespace First_Playable_Roman.Scripts
                 // Update the slime position from enemy
                 slimePositions[i] = enemies[i]._position;
 
-                // Check collision with player
                 float centerX = slimePositions[i].X + slimeWidth * 0.5f;
                 float centerY = slimePositions[i].Y + slimeHeight * 0.5f;
                 float radius = slimeWidth * 0.5f;
@@ -191,7 +192,9 @@ namespace First_Playable_Roman.Scripts
                     (int)radius
                 );
 
-                if (playerBounds.Intersects(slimeBounds))
+                if (enemies[i] is TurretStrategy)
+                    continue;
+                else if (playerBounds.Intersects(slimeBounds))
                 {
                     if (!HasKnife)
                     {
@@ -231,7 +234,7 @@ namespace First_Playable_Roman.Scripts
             return scoreEarned;
         }
 
-        public void PlayerInput(Rectangle roomBounds, List<Rectangle> obstacles, List<Enemy> enemies)
+        public void PlayerInput(List<Rectangle> obstacles)
         {
             // Skip player input when game over or player missing.
             if (Rooms._state == Rooms.GameState.GameOver || Sprite == null)

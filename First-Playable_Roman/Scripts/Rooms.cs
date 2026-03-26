@@ -84,7 +84,7 @@ namespace First_Playable_Roman.Scenes
         private List<Arrow> _arrows;
         private bool _wasSpacePressed; // Fire keybind detection
 
-        public enum GameState { Playing, GameOver }
+        public enum GameState { Playing, GameOver, GameWin }
         public static GameState _state = GameState.Playing;
         
         public string _currentScene;
@@ -201,11 +201,15 @@ namespace First_Playable_Roman.Scenes
 
             if (_state == GameState.Playing)
             {
-                Core.Instance.Window.Title = "Test for now";
+                Core.Instance.Window.Title = "Slime Slasher";
             }
             else if (_state == GameState.GameOver)
             {
                 Core.Instance.Window.Title = "Press R to Restart";
+            }
+            else if (_state == GameState.GameWin)
+            {
+                Core.Instance.Window.Title = "You win!";
             }
 
             _playerSprite?.Update(gameTime);
@@ -220,7 +224,7 @@ namespace First_Playable_Roman.Scenes
             }
 
             // If game over, allow restart and skip gameplay updates
-            if (_state == GameState.GameOver)
+            if (_state == GameState.GameOver || _state == GameState.GameWin)
             {
                 if (Core.Input.Keyboard.WasKeyJustPressed(Keys.R))
                 {
@@ -232,6 +236,12 @@ namespace First_Playable_Roman.Scenes
             if (_player != null && _player.Health.CurrentHealth <= 0)
             {
                 GameOver();
+                return;
+            }
+
+            if (_player != null && _player.HasKey)
+            {
+                GameWin();
                 return;
             }
 
@@ -281,7 +291,7 @@ namespace First_Playable_Roman.Scenes
 
             if (_player != null && _obstacles != null)
             {
-                _player.PlayerInput(_roomBounds, _obstacles, _enemies);
+                _player.PlayerInput(_obstacles);
 
                 if (_player.HasBow && _player.Bow != null && _enemies != null && _enemies.Count > 0)
                 {
@@ -595,9 +605,22 @@ namespace First_Playable_Roman.Scenes
                     0.0f
                 );
             }
+            else if (_state == GameState.GameWin)
+            {
+                Core.SpriteBatch.DrawString(
+                    _font,
+                    "You won! Press R to Restart or ESC to Exit",
+                    new Vector2(Core.GraphicsDevice.Viewport.Width * 0.5f, Core.GraphicsDevice.Viewport.Height * 0.3f),
+                    Color.Aqua,
+                    0.0f,
+                    _font.MeasureString("You won! Press R to Restart or ESC to Exit") * 0.5f,
+                    1.0f,
+                    SpriteEffects.None,
+                    0.0f
+                );
+            }
 
             Core.SpriteBatch.End();
-
             base.Draw(gameTime);
         }
 
@@ -627,6 +650,21 @@ namespace First_Playable_Roman.Scenes
             // Play hit sound
             if (_hitSoundEffect != null)
                 Core.Audio.PlaySoundEffect(_hitSoundEffect);
+        }
+
+        private void GameWin()
+        {
+            if(_state == GameState.GameWin) return;
+
+            _state = GameState.GameWin;
+
+            Core.Audio.PauseAudio();
+
+            _player = null;
+            _playerSprite = null;
+
+            for (int i = 0; i < _slimeVelocity.Count; i++)
+                _slimeVelocity[i] = Vector2.Zero;
         }
 
         private void Restart()
@@ -794,6 +832,8 @@ namespace First_Playable_Roman.Scenes
 
             float hasKnifeTextYOrigin = _font.MeasureString("Has Knife").Y * 0.5f;
             _hasKnifeTextOrigin = new Vector2(0, hasKnifeTextYOrigin);
+
+            //Core.ChangeScene(new Room1("images/room1-definition.xml"));
 
             _state = GameState.Playing;
         }
