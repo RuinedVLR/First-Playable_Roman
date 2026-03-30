@@ -138,6 +138,12 @@
 #begin images/room2-definition.xml
 /copy:images/room2-definition.xml
 
+#begin images/room3-definition.xml
+/copy:images/room3-definition.xml
+
+#begin images/room4-definition.xml
+/copy:images/room4-definition.xml
+
 #begin images/SlimeAtlas.png
 /importer:TextureImporter
 /processor:TextureProcessor

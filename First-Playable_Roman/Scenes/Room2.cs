@@ -49,9 +49,11 @@ namespace First_Playable_Roman.Scenes
                 return;
 
             // Check if player moved to the left edge (transition back to Room1)
-            float leftEdgeThreshold = 50; // 50 pixels from left edge
-            
-            if (_player._position.X < leftEdgeThreshold)
+            float leftThreshold = 50; // 50 pixels from left edge
+            float upThreshold = 50; // 50 pixels from upper edge
+            float downThreshold = Core.GraphicsDevice.Viewport.Height - 50; // 50 pixels from edge below
+
+            if (_player._position.X < leftThreshold)
             {
                 // Calculate the corresponding position in Room1 (enter from right side)
                 Vector2 newPosition = new Vector2(
@@ -61,6 +63,28 @@ namespace First_Playable_Roman.Scenes
 
                 // Switch to Room1
                 Core.ChangeScene(new Room1("images/room1-definition.xml", _player, newPosition, _score));
+            }
+
+            if (_player._position.Y < upThreshold)
+            {
+                Vector2 newPosition = new Vector2(
+                    _player._position.X,
+                    Core.GraphicsDevice.Viewport.Height - 100
+                );
+
+                // Switch to Room1
+                Core.ChangeScene(new Room3("images/room3-definition.xml", _player, newPosition, _score));
+            }
+
+            if (_player._position.Y > downThreshold)
+            {
+                Vector2 newPosition = new Vector2(
+                    _player._position.X,
+                    100
+                );
+
+                // Switch to Room1
+                Core.ChangeScene(new Room4("images/room4-definition.xml", _player, newPosition, _score));
             }
         }
 

@@ -129,7 +129,7 @@ namespace First_Playable_Roman.Scenes
             }
 
             // Knife drop: 20% chance
-            if (Random.Shared.NextDouble() < 0.20)
+            if (Random.Shared.NextDouble() < 0.30 && Random.Shared.NextDouble() > 0.10)
             {
                 _knives.Add(new KnifeItem(dropPosition, _knifeSprite));
             }
