@@ -16,7 +16,7 @@ using System.Diagnostics;
 
 namespace First_Playable_Roman.Scenes
 {
-    public abstract class Rooms : Scene
+    public abstract class Room : Scene
     {
         private AnimatedSprite _playerSprite;
 
@@ -98,13 +98,13 @@ namespace First_Playable_Roman.Scenes
         // Score passed from the previous room.
         private int _initialScore;
 
-        public Rooms(string tilemapPath)
+        public Room(string tilemapPath)
         {
             _tilemapPath = tilemapPath;
             _hasExistingPlayer = false;
         }
 
-        public Rooms(string tilemapPath, Player player, Vector2 playerPosition, int score = 0)
+        public Room(string tilemapPath, Player player, Vector2 playerPosition, int score = 0)
         {
             _tilemapPath = tilemapPath;
             _player = player;
@@ -191,13 +191,181 @@ namespace First_Playable_Roman.Scenes
 
             base.Initialize();
 
-            Restart();
+            Core.ExitOnEscape = false;
+
+            _roomBounds = new Rectangle(
+                (int)_tilemap.TileWidth,
+                (int)_tilemap.TileHeight,
+                (int)(_tilemap.TileWidth * _tilemap.Columns - _tilemap.TileWidth * 2),
+                (int)(_tilemap.TileHeight * _tilemap.Rows - _tilemap.TileHeight * 2)
+             );
+
+            // Recreate sprites from content (needed for both new and existing players).
+            TextureAtlas atlas = TextureAtlas.FromFile(Content, "images/atlas-definition.xml");
+            _playerSprite = atlas.CreateAnimatedSprite("Player-animation");
+            _slimeSprite = atlas.CreateAnimatedSprite("Slime-animation");
+
+            _chaserSprite = atlas.CreateAnimatedSprite("Chaser-animation");
+
+            _turretSprite = atlas.CreateSprite("Turret");
+            _turretSprite.Scale = new Vector2(2f, 2f);
+
+            _knifeSprite = atlas.CreateSprite("Knife");
+            _heartSprite = atlas.CreateSprite("Heart");
+            _keySprite = atlas.CreateSprite("Key");
+
+            _bowSprite = atlas.CreateSprite("Bow");
+            _bowSprite.Scale = new Vector2(2f, 2f);
+
+            _arrowSprite = atlas.CreateSprite("Arrow");
+            _arrowSprite.Scale = new Vector2(2f, 2f);
+
+            _arrows = new List<Arrow>();
+            _wasSpacePressed = false;
+
+            Core.Audio.SongVolume = 0.3f;
+
+            int[] tilesInts = _tilemap.GetTilesIDs();
+
+            _obstaclesTileIDs = new List<int>
+            {
+                03,
+                04,
+                07,
+                08,
+                11,
+                59,
+                63,
+                64
+            };
+
+            _obstacles = new List<Rectangle>();
+
+            for (int i = 0; i < tilesInts.Length; i++)
+            {
+                if (_obstaclesTileIDs.Contains(tilesInts[i]))
+                {
+                    int x = i % _tilemap.Columns;
+                    int y = (int)Math.Floor((double)(i / _tilemap.Columns));
+
+                    _obstacles.Add(new Rectangle(
+                                (int)(x * _tilemap.TileWidth),
+                                (int)(y * _tilemap.TileHeight),
+                                (int)_tilemap.TileWidth,
+                                (int)_tilemap.TileHeight
+                    ));
+                }
+            }
+
+            if (_hasExistingPlayer && _player != null)
+            {
+                // Reuse the existing player
+                // but keep health, knife, bow, and other state intact.
+                _player.Sprite = _playerSprite;
+
+                // Apply the saved spawn position to the player object.
+                _player._position = _playerPosition;
+
+                // Re-equip bow with the new sprite if the player already has one.
+                if (_player.HasBow)
+                {
+                    _player.EquipBow(_bowSprite);
+                }
+
+                // Restore the score from the previous room.
+                _score = _initialScore;
+
+                // After the first Restart call, clear the flag so that pressing R
+                // to restart after Game Over creates a fresh player.
+                _hasExistingPlayer = false;
+            }
+            else
+            {
+                // No existing player — create a brand-new one (first room or Game Over restart).
+                _score = 0;
+
+                Vector2 safePlayerPosition = FindSafePosition(_roomBounds, _obstacles, (int)_playerSprite.Width, (int)_playerSprite.Height);
+
+                _player = new Player("Player", 100, (int)safePlayerPosition.X, (int)safePlayerPosition.Y, 1, _playerSprite);
+
+                _playerPosition = new Vector2(_player._position.X, _player._position.Y);
+
+                _player.EquipBow(_bowSprite);
+            }
+
+            _slimePositions = new List<Vector2>();
+            _slimeVelocity = new List<Vector2>();
+
+            // Initialize empty item lists (items drop from enemies)
+            _knives = new List<KnifeItem>();
+            _hearts = new List<HeartItem>();
+            _key = null;
+            _keyHasDropped = false;
+
+            // Call the abstract method to initialize room-specific settings
+            InitializeItems();
+            InitializeEnemies();
+
+            // Properly position and initialize enemies, assign sprites per strategy
+            for (int i = 0; i < _enemies.Count; i++)
+            {
+                // Assign sprite based on enemy type
+                if (_enemies[i] is TurretStrategy)
+                {
+                    _enemies[i].SetStaticSprite(_turretSprite);
+
+                    // Center turret position so the sprite is visually centered on its coordinates
+                    _enemies[i]._position.X -= _enemies[i].SpriteWidth * 0.5f;
+                    _enemies[i]._position.Y -= _enemies[i].SpriteHeight * 0.5f;
+                }
+                else if (_enemies[i] is ChaserStrategy)
+                {
+                    _enemies[i].SetAnimatedSprite(_chaserSprite);
+                    // Use Respawn to set enemy position in a safe random location
+                    _enemies[i].Respawn(_roomBounds, _tilemap.TileWidth, _tilemap.TileHeight, _tilemap.Columns, _tilemap.Rows);
+                }
+                else
+                {
+                    _enemies[i].SetAnimatedSprite(_slimeSprite);
+
+                    // Use Respawn to set enemy position in a safe random location
+                    _enemies[i].Respawn(_roomBounds, _tilemap.TileWidth, _tilemap.TileHeight, _tilemap.Columns, _tilemap.Rows);
+                }
+
+                _slimePositions.Add(new Vector2(_enemies[i]._position.X, _enemies[i]._position.Y));
+                _slimeVelocity.Add(_enemies[i].Move());
+            }
+
+            // Set the position of the score text to align to the left edge of the
+            // room bounds, and to vertically be at the center of the first tile.
+            _healthTextPosition = new Vector2(_roomBounds.Left, _tilemap.TileHeight * 0.5f);
+
+            // Set the origin of the text so it is left-centered.
+            float healthTextYOrigin = _font.MeasureString("Health").Y * 0.5f;
+            _healthTextOrigin = new Vector2(0, healthTextYOrigin);
+
+            _scoreTextPosition = new Vector2(_roomBounds.Right - 300, _tilemap.TileHeight * 0.5f);
+
+            float scoreTextYOrigin = _font.MeasureString("Score").Y * 0.5f;
+            _scoreTextOrigin = new Vector2(0, scoreTextYOrigin);
+
+            _hasKnifeTextPosition = new Vector2(_healthTextPosition.X, _healthTextPosition.Y + 40);
+
+            float hasKnifeTextYOrigin = _font.MeasureString("Has Knife").Y * 0.5f;
+            _hasKnifeTextOrigin = new Vector2(0, hasKnifeTextYOrigin);
+
+            //Core.ChangeScene(new Room1("images/room1-definition.xml"));
+
+            _state = GameState.Playing;
         }
 
         public override void Update(GameTime gameTime)
         {
             // Ensure core / input state is updated before we inspect input.
             base.Update(gameTime);
+
+            if (GamePad.GetState(PlayerIndex.One).Buttons.Back == ButtonState.Pressed || Keyboard.GetState().IsKeyDown(Keys.Escape))
+                Core.ChangeScene(new TitleScene());
 
             if (_state == GameState.Playing)
             {
@@ -244,9 +412,6 @@ namespace First_Playable_Roman.Scenes
                 GameWin();
                 return;
             }
-
-            if (GamePad.GetState(PlayerIndex.One).Buttons.Back == ButtonState.Pressed || Keyboard.GetState().IsKeyDown(Keys.Escape))
-                Core.ChangeScene(new TitleScene());
 
             // Check room transitions
             CheckRoomTransitions();
@@ -595,11 +760,11 @@ namespace First_Playable_Roman.Scenes
             {
                 Core.SpriteBatch.DrawString(
                     _font,
-                    "Game Over - press R to restart",
+                    "Game Over - press ESC to Exit",
                     new Vector2(Core.GraphicsDevice.Viewport.Width * 0.5f, Core.GraphicsDevice.Viewport.Height * 0.3f),
                     Color.Gold,
                     0.0f,
-                    _font.MeasureString("Game Over - press R to restart") * 0.5f,
+                    _font.MeasureString("Game Over - press ESC to Exit") * 0.5f,
                     1.0f,
                     SpriteEffects.None,
                     0.0f
@@ -609,11 +774,11 @@ namespace First_Playable_Roman.Scenes
             {
                 Core.SpriteBatch.DrawString(
                     _font,
-                    "You won! Press R to Restart or ESC to Exit",
+                    "You won! Press ESC to Exit",
                     new Vector2(Core.GraphicsDevice.Viewport.Width * 0.5f, Core.GraphicsDevice.Viewport.Height * 0.3f),
                     Color.Aqua,
                     0.0f,
-                    _font.MeasureString("You won! Press R to Restart or ESC to Exit") * 0.5f,
+                    _font.MeasureString("You won! Press ESC to Exit") * 0.5f,
                     1.0f,
                     SpriteEffects.None,
                     0.0f
@@ -669,173 +834,7 @@ namespace First_Playable_Roman.Scenes
 
         private void Restart()
         {
-            Core.ExitOnEscape = false;
-
-            _roomBounds = new Rectangle(
-                (int)_tilemap.TileWidth,
-                (int)_tilemap.TileHeight,
-                (int)(_tilemap.TileWidth * _tilemap.Columns - _tilemap.TileWidth * 2),
-                (int)(_tilemap.TileHeight * _tilemap.Rows - _tilemap.TileHeight * 2)
-             );
-
-            // Recreate sprites from content (needed for both new and existing players).
-            TextureAtlas atlas = TextureAtlas.FromFile(Content, "images/atlas-definition.xml");
-            _playerSprite = atlas.CreateAnimatedSprite("Player-animation");
-            _slimeSprite = atlas.CreateAnimatedSprite("Slime-animation");
-
-            _chaserSprite = atlas.CreateAnimatedSprite("Chaser-animation");
-
-            _turretSprite = atlas.CreateSprite("Turret");
-            _turretSprite.Scale = new Vector2(2f, 2f);
-
-            _knifeSprite = atlas.CreateSprite("Knife");
-            _heartSprite = atlas.CreateSprite("Heart");
-            _keySprite = atlas.CreateSprite("Key");
-
-            _bowSprite = atlas.CreateSprite("Bow");
-            _bowSprite.Scale = new Vector2(2f, 2f);
-
-            _arrowSprite = atlas.CreateSprite("Arrow");
-            _arrowSprite.Scale = new Vector2(2f, 2f);
-
-            _arrows = new List<Arrow>();
-            _wasSpacePressed = false;
-
-            Core.Audio.PlaySong(_themeSong);
-            Core.Audio.SongVolume = 0.3f;
-
-            int[] tilesInts = _tilemap.GetTilesIDs();
-
-            _obstaclesTileIDs = new List<int>
-            {
-                03,
-                04,
-                07,
-                08,
-                11,
-                59,
-                63,
-                64
-            };
-
-            _obstacles = new List<Rectangle>();
-
-            for (int i = 0; i < tilesInts.Length; i++)
-            {
-                if (_obstaclesTileIDs.Contains(tilesInts[i]))
-                {
-                    int x = i % _tilemap.Columns;
-                    int y = (int)Math.Floor((double)(i / _tilemap.Columns));
-
-                    _obstacles.Add(new Rectangle(
-                                (int)(x * _tilemap.TileWidth),
-                                (int)(y * _tilemap.TileHeight),
-                                (int)_tilemap.TileWidth,
-                                (int)_tilemap.TileHeight
-                    ));
-                }
-            }
-
-            if (_hasExistingPlayer && _player != null)
-            {
-                // Reuse the existing player
-                // but keep health, knife, bow, and other state intact.
-                _player.Sprite = _playerSprite;
-
-                // Apply the saved spawn position to the player object.
-                _player._position = _playerPosition;
-
-                // Re-equip bow with the new sprite if the player already has one.
-                if (_player.HasBow)
-                {
-                    _player.EquipBow(_bowSprite);
-                }
-
-                // Restore the score from the previous room.
-                _score = _initialScore;
-
-                // After the first Restart call, clear the flag so that pressing R
-                // to restart after Game Over creates a fresh player.
-                _hasExistingPlayer = false;
-            }
-            else
-            {
-                // No existing player — create a brand-new one (first room or Game Over restart).
-                _score = 0;
-
-                Vector2 safePlayerPosition = FindSafePosition(_roomBounds, _obstacles, (int)_playerSprite.Width, (int)_playerSprite.Height);
-
-                _player = new Player("Player", 100, (int)safePlayerPosition.X, (int)safePlayerPosition.Y, 1, _playerSprite);
-
-                _playerPosition = new Vector2(_player._position.X, _player._position.Y);
-
-                _player.EquipBow(_bowSprite);
-            }
-
-            _slimePositions = new List<Vector2>();
-            _slimeVelocity = new List<Vector2>();
-
-            // Initialize empty item lists (items drop from enemies)
-            _knives = new List<KnifeItem>();
-            _hearts = new List<HeartItem>();
-            _key = null;
-            _keyHasDropped = false;
-
-            // Call the abstract method to initialize room-specific settings
-            InitializeItems();
-            InitializeEnemies();
-
-            // Properly position and initialize enemies, assign sprites per strategy
-            for (int i = 0; i < _enemies.Count; i++)
-            {
-                // Assign sprite based on enemy type
-                if (_enemies[i] is TurretStrategy)
-                {
-                    _enemies[i].SetStaticSprite(_turretSprite);
-
-                    // Center turret position so the sprite is visually centered on its coordinates
-                    _enemies[i]._position.X -= _enemies[i].SpriteWidth * 0.5f;
-                    _enemies[i]._position.Y -= _enemies[i].SpriteHeight * 0.5f;
-                }
-                else if (_enemies[i] is ChaserStrategy)
-                {
-                    _enemies[i].SetAnimatedSprite(_chaserSprite);
-                    // Use Respawn to set enemy position in a safe random location
-                    _enemies[i].Respawn(_roomBounds, _tilemap.TileWidth, _tilemap.TileHeight, _tilemap.Columns, _tilemap.Rows);
-                }
-                else
-                {
-                    _enemies[i].SetAnimatedSprite(_slimeSprite);
-
-                    // Use Respawn to set enemy position in a safe random location
-                    _enemies[i].Respawn(_roomBounds, _tilemap.TileWidth, _tilemap.TileHeight, _tilemap.Columns, _tilemap.Rows);
-                }
-                
-                _slimePositions.Add(new Vector2(_enemies[i]._position.X, _enemies[i]._position.Y));
-                _slimeVelocity.Add(_enemies[i].Move());
-            }
-
-            // Set the position of the score text to align to the left edge of the
-            // room bounds, and to vertically be at the center of the first tile.
-            _healthTextPosition = new Vector2(_roomBounds.Left, _tilemap.TileHeight * 0.5f);
-
-            // Set the origin of the text so it is left-centered.
-            float healthTextYOrigin = _font.MeasureString("Health").Y * 0.5f;
-            _healthTextOrigin = new Vector2(0, healthTextYOrigin);
-
-            _scoreTextPosition = new Vector2(_roomBounds.Right - 300, _tilemap.TileHeight * 0.5f);
-
-            float scoreTextYOrigin = _font.MeasureString("Score").Y * 0.5f;
-            _scoreTextOrigin = new Vector2(0, scoreTextYOrigin);
-
-            _hasKnifeTextPosition = new Vector2(_healthTextPosition.X, _healthTextPosition.Y + 40);
-
-            float hasKnifeTextYOrigin = _font.MeasureString("Has Knife").Y * 0.5f;
-            _hasKnifeTextOrigin = new Vector2(0, hasKnifeTextYOrigin);
-
-            //Core.ChangeScene(new Room1("images/room1-definition.xml"));
-
-            _state = GameState.Playing;
+            
         }
 
         private Vector2 FindSafePosition(Rectangle roomBounds, List<Rectangle> obstacles, int entityWidth, int entityHeight)

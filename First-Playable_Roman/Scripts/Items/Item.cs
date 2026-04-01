@@ -9,7 +9,7 @@ using System.Threading.Tasks;
 
 namespace First_Playable_Roman.Scripts.Items
 {
-    public abstract class Items
+    public abstract class Item
     {
         public Vector2 Position { get; set; }
         protected Sprite Sprite { get; set; }
@@ -18,7 +18,7 @@ namespace First_Playable_Roman.Scripts.Items
         // When true, the item cannot be picked up until the player leaves its hitbox first
         private bool _pickupGuard;
 
-        protected Items(Vector2 position, Sprite sprite)
+        protected Item(Vector2 position, Sprite sprite)
         {
             Position = position;
             Sprite = sprite;

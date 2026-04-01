@@ -17,7 +17,7 @@ namespace MonoGameLibrary
         /// Gets reference to Core instance
         /// </summary>
         public static Core Instance => s_instance;
-
+        
         // The scene that is currently active.
         private static Scene s_activeScene;
 
@@ -141,7 +141,7 @@ namespace MonoGameLibrary
             // Update the audio controller.
             Audio.Update();
 
-            if (ExitOnEscape && Input.Keyboard.IsKeyDown(Keys.Escape))
+            if (ExitOnEscape && Input.Keyboard.WasKeyJustPressed(Keys.Escape))
             {
                 Exit();
             }

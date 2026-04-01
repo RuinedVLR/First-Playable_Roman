@@ -3,7 +3,7 @@ using Microsoft.Xna.Framework;
 
 namespace First_Playable_Roman.Scripts.Items
 {
-    public class KeyItem : Items
+    public class KeyItem : Item
     {
         public KeyItem(Vector2 position, Sprite sprite) : base(position, sprite)
         {

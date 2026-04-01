@@ -3,7 +3,7 @@ using Microsoft.Xna.Framework;
 
 namespace First_Playable_Roman.Scripts.Items
 {
-    public class HeartItem : Items
+    public class HeartItem : Item
     {
         private int _healAmount;
 

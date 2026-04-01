@@ -25,7 +25,7 @@ namespace First_Playable_Roman.Scripts.Movements
 
         public List<TurretProjectile> Projectiles { get; private set; }
 
-        public TurretStrategy(int xPos, int yPos, Rooms room) : base(9999, xPos, yPos, 0, room)
+        public TurretStrategy(int xPos, int yPos, Room room) : base(9999, xPos, yPos, 0, room)
         {
             _currentDirection = 0;
             _shootTimer = ShootInterval;

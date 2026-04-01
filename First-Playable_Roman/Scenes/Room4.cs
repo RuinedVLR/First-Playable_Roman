@@ -14,7 +14,7 @@ using System.Threading.Tasks;
 
 namespace First_Playable_Roman.Scenes
 {
-    public class Room4 : Rooms
+    public class Room4 : Room
     {
         public Room4(string tilemapPath) : base(tilemapPath) { }
 

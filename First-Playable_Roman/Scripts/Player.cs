@@ -214,7 +214,7 @@ namespace First_Playable_Roman.Scripts
                             // Get the Rooms instance to spawn drops
                             if (enemies[i] is Enemy enemy)
                             {
-                                Rooms room = enemy.GetRoom();
+                                Room room = enemy.GetRoom();
                                 room?.SpawnEnemyDrop(enemyDeathPos);
                             }
                         }
@@ -237,7 +237,7 @@ namespace First_Playable_Roman.Scripts
         public void PlayerInput(List<Rectangle> obstacles)
         {
             // Skip player input when game over or player missing.
-            if (Rooms._state == Rooms.GameState.GameOver || Sprite == null)
+            if (Room._state == Room.GameState.GameOver || Sprite == null)
                 return;
 
             KeyboardInfo keyboard = Core.Input.Keyboard;

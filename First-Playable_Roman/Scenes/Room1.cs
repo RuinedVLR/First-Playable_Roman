@@ -9,7 +9,7 @@ using System.Collections.Generic;
 
 namespace First_Playable_Roman.Scenes
 {
-    public class Room1 : Rooms
+    public class Room1 : Room
     {
         public Room1(string tilemapPath) : base(tilemapPath) {}
         

@@ -4,6 +4,7 @@ using Microsoft.Xna.Framework;
 using Microsoft.Xna.Framework.Graphics;
 using First_Playable_Roman.Scenes;
 using MonoGameLibrary.Graphics;
+using First_Playable_Roman.Scripts.Movements;
 
 namespace First_Playable_Roman.Scripts
 {
@@ -14,7 +15,7 @@ namespace First_Playable_Roman.Scripts
         public bool IsActive { get; set; }
         private int _maxHealth;
 
-        private Rooms _rooms;
+        private Room _rooms;
 
         // Sprite for this enemy (animated or static)
         protected AnimatedSprite _animatedSprite;
@@ -192,7 +193,7 @@ namespace First_Playable_Roman.Scripts
             return velocity;
         }
 
-        public Enemy(int maxHp, int xPos, int yPos, int speed, Rooms room) : base(xPos, yPos)
+        public Enemy(int maxHp, int xPos, int yPos, int speed, Room room) : base(xPos, yPos)
         {
             _maxHealth = maxHp;
             Health = new Health(maxHp);
@@ -203,7 +204,7 @@ namespace First_Playable_Roman.Scripts
 
         public abstract Vector2 Move();
 
-        public Rooms GetRoom()
+        public Room GetRoom()
         {
             return _rooms;
         }

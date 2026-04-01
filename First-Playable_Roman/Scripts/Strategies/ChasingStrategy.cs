@@ -16,7 +16,7 @@ namespace First_Playable_Roman.Scripts.Strategies
         private Vector2 _targetPosition;
         private bool _hasTarget;
 
-        public ChaserStrategy(int xPos, int yPos, int speed, float detectionRadius, Rooms room)
+        public ChaserStrategy(int xPos, int yPos, int speed, float detectionRadius, Room room)
             : base(75, xPos, yPos, speed, room)
         {
             DetectionRadius = detectionRadius;
