@@ -38,8 +38,8 @@ namespace First_Playable_Roman.Scenes
             _enemies = new List<Enemy>
             {
                 new LurkingStrategy(0, 0, 5, this),
+                new LurkingStrategy(0, 0, 5, this),
                 new ChaserStrategy(0, 0, 3, 200f, this),
-                new TurretStrategy(centerX, centerY, this),
             };
         }
 

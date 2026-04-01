@@ -1,5 +1,6 @@
 ﻿using First_Playable_Roman.Scenes;
 using Microsoft.Xna.Framework;
+using System;
 
 namespace First_Playable_Roman.Scripts.Strategies
 {
@@ -68,7 +69,18 @@ namespace First_Playable_Roman.Scripts.Strategies
             }
             else
             {
-                return Vector2.Zero; // No movement when not chasing
+                // Generate a random angle.
+                float angle = (float)(Random.Shared.NextDouble() * Math.PI * 2);
+
+                // Convert angle to a direction vector.
+                float x = (float)Math.Cos(angle);
+                float y = (float)Math.Sin(angle);
+                Vector2 direction = new Vector2(x, y);
+
+                // Multiply the direction vector by the movement speed.
+                Vector2 slimeVelocity = new Vector2(direction.X * Speed, direction.Y * Speed);
+
+                return slimeVelocity;
             }
         }
     }
