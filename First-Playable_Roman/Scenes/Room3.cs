@@ -14,24 +14,24 @@ namespace First_Playable_Roman.Scenes
     {
         public Room3(string tilemapPath) : base(tilemapPath) { }
 
-        public Room3(string tilemapPath, Player player, Vector2 playerPosition, int score = 0) : base(tilemapPath, player, playerPosition, score) {}
+        public Room3(string tilemapPath, Player player, Vector2 playerPosition, int score = 0, bool isCleared = false)
+            : base(tilemapPath, player, playerPosition, score, isCleared) {}
 
-        // Defines the tilemap to draw.
         private Tilemap _tilemap;
-
         private Song _themeSong;
-
-        // The SpriteFont Description used to draw text.
         private SpriteFont _font;
 
-        protected override void InitializeItems()
+        protected override int GetEnemyKillGoal() => 10;
+
+        protected override List<int> GetObstacleTileIDs()
         {
-            // Items now drop from enemies
+            return new List<int> { 03, 04, 07, 08 };
         }
+
+        protected override void InitializeItems() { }
 
         protected override void InitializeEnemies()
         {
-            // Calculate center of the room for turret placement
             int centerX = (int)(_tilemap.TileWidth * _tilemap.Columns * 0.5f);
             int centerY = (int)(_tilemap.TileHeight * _tilemap.Rows * 0.5f);
 
@@ -48,17 +48,13 @@ namespace First_Playable_Roman.Scenes
             if (_player == null)
                 return;
 
+            // Bottom → Room2 (already cleared to reach Room3)
             float downThreshold = Core.GraphicsDevice.Viewport.Height - 50;
 
             if (_player._position.Y > downThreshold)
             {
-                Vector2 newPosition = new Vector2(
-                    _player._position.X,
-                    100
-                );
-
-                // Switch to Room2
-                Core.ChangeScene(new Room2("images/room2-definition.xml", _player, newPosition, _score));
+                Vector2 newPosition = new Vector2(_player._position.X, 100);
+                Core.ChangeScene(new Room2("images/room2-definition.xml", _player, newPosition, _score, true));
             }
         }
 
@@ -69,17 +65,12 @@ namespace First_Playable_Roman.Scenes
             _tilemap = Tilemap.FromFile(Content, "images/room3-definition.xml");
             _tilemap.Scale = new Vector2(4.0f, 4.0f);
 
-            // Load the background music
             _themeSong = Content.Load<Song>("audio/backgroundMusic");
-
-            // Load the font
             _font = Content.Load<SpriteFont>("fonts/04B_30");
         }
 
         public override void Initialize()
         {
-            // TODO: Add your initialization logic here
-
             base.Initialize();
         }
 

@@ -144,6 +144,9 @@
 #begin images/room4-definition.xml
 /copy:images/room4-definition.xml
 
+#begin images/room5-definition.xml
+/copy:images/room5-definition.xml
+
 #begin images/SlimeAtlas.png
 /importer:TextureImporter
 /processor:TextureProcessor

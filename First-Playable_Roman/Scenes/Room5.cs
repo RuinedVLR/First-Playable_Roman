@@ -1,4 +1,5 @@
 ﻿using First_Playable_Roman.Scripts;
+using First_Playable_Roman.Scripts.Movements;
 using First_Playable_Roman.Scripts.Strategies;
 using Microsoft.Xna.Framework;
 using Microsoft.Xna.Framework.Graphics;
@@ -9,24 +10,27 @@ using System.Collections.Generic;
 
 namespace First_Playable_Roman.Scenes
 {
-    public class Room1 : Room
+    public class Room5 : Room
     {
-        public Room1(string tilemapPath) : base(tilemapPath) {}
+        public Room5(string tilemapPath) : base(tilemapPath) { }
 
-        public Room1(string tilemapPath, Player player, Vector2 playerPosition, int score = 0, bool isCleared = false)
-            : base(tilemapPath, player, playerPosition, score, isCleared) {}
+        public Room5(string tilemapPath, Player player, Vector2 playerPosition, int score = 0, bool isCleared = false)
+            : base(tilemapPath, player, playerPosition, score, isCleared) { }
 
         private Tilemap _tilemap;
         private Song _themeSong;
         private SpriteFont _font;
 
-        // Room1: defeat 5 enemies to clear
-        protected override int GetEnemyKillGoal() => 5;
+        // Room5: defeat 15 enemies to clear
+        protected override int GetEnemyKillGoal() => 15;
 
-        protected override void InitializeItems()
+        // Maze theme: only solid walls as obstacles
+        protected override List<int> GetObstacleTileIDs()
         {
-            // Items now drop from enemies
+            return new List<int> { 08 };
         }
+
+        protected override void InitializeItems() { }
 
         protected override void InitializeEnemies()
         {
@@ -34,6 +38,8 @@ namespace First_Playable_Roman.Scenes
             {
                 new LurkingStrategy(0, 0, 5, this),
                 new LurkingStrategy(0, 0, 5, this),
+                new ChaserStrategy(0, 0, 3, 200f, this),
+                new ChaserStrategy(0, 0, 3, 200f, this),
             };
         }
 
@@ -42,13 +48,13 @@ namespace First_Playable_Roman.Scenes
             if (_player == null)
                 return;
 
-            float rightThreshold = Core.GraphicsDevice.Viewport.Width - 50;
+            // Left → Room4 (already cleared to reach Room5)
+            float leftThreshold = 50;
 
-            if (_player._position.X > rightThreshold)
+            if (_player._position.X < leftThreshold)
             {
-                Vector2 newPosition = new Vector2(100, _player._position.Y);
-                // Pass isCleared = false because Room2 is a new room for the player
-                Core.ChangeScene(new Room2("images/room2-definition.xml", _player, newPosition, _score, false));
+                Vector2 newPosition = new Vector2(Core.GraphicsDevice.Viewport.Width - 100, _player._position.Y);
+                Core.ChangeScene(new Room4("images/room4-definition.xml", _player, newPosition, _score, true));
             }
         }
 
@@ -56,7 +62,7 @@ namespace First_Playable_Roman.Scenes
         {
             base.LoadContent();
 
-            _tilemap = Tilemap.FromFile(Content, "images/room1-definition.xml");
+            _tilemap = Tilemap.FromFile(Content, "images/room5-definition.xml");
             _tilemap.Scale = new Vector2(4.0f, 4.0f);
 
             _themeSong = Content.Load<Song>("audio/backgroundMusic");

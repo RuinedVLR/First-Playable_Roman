@@ -34,6 +34,15 @@ namespace First_Playable_Roman.Scripts
         public bool HasKnife { get; set; }
         public bool HasKey { get; set; }
 
+        // Invincibility timer: player cannot take contact damage while this is > 0
+        private float _invincibilityTimer = 0f;
+        private const float InvincibilityDuration = 0.8f;
+
+        // Blink state: tracks accumulated time to toggle sprite visibility while invincible
+        private float _blinkTimer = 0f;
+        private const float BlinkInterval = 0.1f; // seconds per blink toggle
+        private bool _isVisible = true;
+
         public Player(string name, int hp, int xPos, int yPos, int speed, AnimatedSprite playerSprite) : base(xPos, yPos)
         {
             Name = name;
@@ -42,7 +51,7 @@ namespace First_Playable_Roman.Scripts
             Sprite = playerSprite;
             HasBow = false;
             HasKnife = false;
-            
+
             HitboxWidth = 64;
             HitboxHeight = 64;
 
@@ -70,6 +79,36 @@ namespace First_Playable_Roman.Scripts
             Health.TakeDamage(damage);
         }
 
+        // Tick down the invincibility timer and update blink state each frame
+        public void UpdateInvincibility(GameTime gameTime)
+        {
+            float delta = (float)gameTime.ElapsedGameTime.TotalSeconds;
+
+            if (_invincibilityTimer > 0f)
+            {
+                _invincibilityTimer -= delta;
+
+                // Accumulate blink timer and toggle visibility at each interval
+                _blinkTimer += delta;
+                if (_blinkTimer >= BlinkInterval)
+                {
+                    _blinkTimer -= BlinkInterval;
+                    _isVisible = !_isVisible;
+                }
+
+                // Ensure player becomes fully visible when invincibility expires
+                if (_invincibilityTimer <= 0f)
+                {
+                    _invincibilityTimer = 0f;
+                    _isVisible = true;
+                    _blinkTimer = 0f;
+                }
+            }
+        }
+
+        // Returns whether the player sprite should be drawn this frame
+        public bool IsVisible => _isVisible;
+
         public void Attack(Enemy enemy)
         {
             enemy.TakeDamage(Health.CurrentHealth);
@@ -78,13 +117,10 @@ namespace First_Playable_Roman.Scripts
         private void Draw()
         {
             if (Sprite != null)
-            {
                 Sprite.Draw(Core.SpriteBatch, _position);
-            }
+
             if (_isShowHitboxes)
-            {
                 Core.DrawRectangleOutline(Bounds, Color.Red);
-            }
         }
 
         // Returns Player hitbox centered on sprite
@@ -111,7 +147,8 @@ namespace First_Playable_Roman.Scripts
             Rectangle roomBounds,
             Tilemap tilemap,
             SoundEffect hitSoundEffect,
-            List<Rectangle> obstacles)
+            List<Rectangle> obstacles,
+            bool isCleared)
         {
             int scoreEarned = 0;
 
@@ -161,7 +198,7 @@ namespace First_Playable_Roman.Scripts
                     Core.Audio.PlaySoundEffect(hitSoundEffect);
             }
 
-            // Update enemy positions with collision detection
+            // Update enemy positions and check contact with player
             for (int i = 0; i < slimePositions.Count; i++)
             {
                 if (i >= enemies.Count || !enemies[i].IsActive)
@@ -170,7 +207,6 @@ namespace First_Playable_Roman.Scripts
                 float slimeWidth = slimeSprite?.Width ?? 64f;
                 float slimeHeight = slimeSprite?.Height ?? 64f;
 
-                // Update enemy position with collision detection against obstacles and room bounds
                 slimeVelocity[i] = enemies[i].PositionAndCollision(
                     slimeVelocity[i],
                     obstacles,
@@ -179,7 +215,6 @@ namespace First_Playable_Roman.Scripts
                     roomBounds
                 );
 
-                // Update the slime position from enemy
                 slimePositions[i] = enemies[i]._position;
 
                 float centerX = slimePositions[i].X + slimeWidth * 0.5f;
@@ -194,49 +229,72 @@ namespace First_Playable_Roman.Scripts
 
                 if (enemies[i] is TurretStrategy)
                     continue;
-                else if (playerBounds.Intersects(slimeBounds))
+
+                if (playerBounds.Intersects(slimeBounds))
                 {
-                    if (!HasKnife)
+                    if (HasKnife)
                     {
-                        TakeDamage(10);
-                    }
-                    else
-                    {
+                        // Knife kill: always kills the enemy regardless of cleared state
                         scoreEarned += 100;
                         HasKnife = false;
 
-                        // Enemy killed by knife — spawn drops at enemy position
                         Vector2 enemyDeathPos = slimePositions[i];
                         enemies[i].TakeDamage(enemies[i].Health.CurrentHealth);
 
                         if (!enemies[i].IsActive)
                         {
-                            // Get the Rooms instance to spawn drops
-                            if (enemies[i] is Enemy enemy)
-                            {
-                                Room room = enemy.GetRoom();
-                                room?.SpawnEnemyDrop(enemyDeathPos);
-                            }
+                            Room room = enemies[i].GetRoom();
+                            room?.SpawnEnemyDrop(enemyDeathPos);
+                        }
+
+                        // Only respawn after knife kill if the room is not yet cleared
+                        if (!isCleared)
+                        {
+                            enemies[i].Respawn(roomBounds, tilemap.TileWidth, tilemap.TileHeight, tilemap.Columns, tilemap.Rows);
+                            slimePositions[i] = enemies[i]._position;
+                            slimeVelocity[i] = enemies[i].Move();
+                        }
+
+                        if (hitSoundEffect != null)
+                            Core.Audio.PlaySoundEffect(hitSoundEffect);
+                    }
+                    else if (isCleared)
+                    {
+                        // Room is cleared: remaining enemies die on contact instead of hurting the player
+                        Vector2 enemyDeathPos = slimePositions[i];
+                        enemies[i].TakeDamage(enemies[i].Health.CurrentHealth);
+
+                        if (!enemies[i].IsActive)
+                        {
+                            Room room = enemies[i].GetRoom();
+                            room?.SpawnEnemyDrop(enemyDeathPos);
+                        }
+
+                        if (hitSoundEffect != null)
+                            Core.Audio.PlaySoundEffect(hitSoundEffect);
+                    }
+                    else
+                    {
+                        // Normal contact damage — only once per InvincibilityDuration seconds
+                        if (_invincibilityTimer <= 0f)
+                        {
+                            TakeDamage(10);
+                            _invincibilityTimer = InvincibilityDuration;
+                            _blinkTimer = 0f;
+                            _isVisible = false; // Start with sprite hidden on first hit frame
+
+                            if (hitSoundEffect != null)
+                                Core.Audio.PlaySoundEffect(hitSoundEffect);
                         }
                     }
-
-                    // Respawn enemy using method
-                    enemies[i].Respawn(roomBounds, tilemap.TileWidth, tilemap.TileHeight, tilemap.Columns, tilemap.Rows);
-                    slimePositions[i] = enemies[i]._position;
-                    slimeVelocity[i] = enemies[i].Move();
-
-                    // Play hit sound effect on player damage
-                    if (hitSoundEffect != null)
-                        Core.Audio.PlaySoundEffect(hitSoundEffect);
                 }
             }
 
             return scoreEarned;
         }
 
-        public void PlayerInput(List<Rectangle> obstacles)
+        public void PlayerInput(List<Rectangle> obstacles, Rectangle roomBounds, bool isCleared)
         {
-            // Skip player input when game over or player missing.
             if (Room._state == Room.GameState.GameOver || Sprite == null)
                 return;
 
@@ -245,27 +303,18 @@ namespace First_Playable_Roman.Scripts
             int playerInputX = 0;
             int playerInputY = 0;
 
-            // Bow aiming and shooting logic
             if (HasBow && Bow != null)
             {
                 if (keyboard.IsKeyDown(Keys.Space))
-                {
-                    _speed = 1; // Speed down when aiming
-                }
+                    _speed = 1;
                 else
-                {
                     _speed = 2;
-                }
             }
 
             if (keyboard.IsKeyDown(Keys.LeftShift) && !keyboard.IsKeyDown(Keys.Space))
-            {
                 _speed = 4;
-            }
-            else if(!keyboard.IsKeyDown(Keys.Space))
-            {
+            else if (!keyboard.IsKeyDown(Keys.Space))
                 _speed = 2;
-            }
 
             if (keyboard.IsKeyDown(Keys.W) || keyboard.IsKeyDown(Keys.Up)) playerInputY--;
             if (keyboard.IsKeyDown(Keys.S) || keyboard.IsKeyDown(Keys.Down)) playerInputY++;
@@ -276,7 +325,6 @@ namespace First_Playable_Roman.Scripts
 
             _position.X += playerInputX * _speed;
 
-            // X collision check
             Rectangle playerRectX = new Rectangle(
                 (int)(_position.X + _hitboxOffset.X),
                 (int)(_position.Y + _hitboxOffset.Y),
@@ -297,15 +345,11 @@ namespace First_Playable_Roman.Scripts
                 }
             }
 
-            // X axis collision response
             if (hasCollisionX)
-            {
                 _position.X = oldPosition.X;
-            }
 
             _position.Y += playerInputY * _speed;
 
-            // Y collision check
             Rectangle playerRectY = new Rectangle(
                 (int)(_position.X + _hitboxOffset.X),
                 (int)(_position.Y + _hitboxOffset.Y),
@@ -326,13 +370,16 @@ namespace First_Playable_Roman.Scripts
                 }
             }
 
-            // Y axis collision response
             if (hasCollisionY)
-            {
                 _position.Y = oldPosition.Y;
+
+            // When the room is not yet cleared, clamp the player inside the room bounds
+            if (!isCleared)
+            {
+                _position.X = Math.Clamp(_position.X, roomBounds.Left, roomBounds.Right - HitboxWidth);
+                _position.Y = Math.Clamp(_position.Y, roomBounds.Top, roomBounds.Bottom - HitboxHeight);
             }
 
-            // Hitbox update
             Bounds = new Rectangle(
                 (int)(_position.X + _hitboxOffset.X),
                 (int)(_position.Y + _hitboxOffset.Y),
@@ -340,25 +387,18 @@ namespace First_Playable_Roman.Scripts
                 HitboxHeight
             );
 
-            if(keyboard.WasKeyJustPressed(Keys.T))
-            {
+            if (keyboard.WasKeyJustPressed(Keys.T))
                 _isShowHitboxes = !_isShowHitboxes;
-            }
 
-            // If the M key is pressed, toggle mute state for audio.
             if (keyboard.WasKeyJustPressed(Keys.M))
-            {
                 Core.Audio.ToggleMute();
-            }
 
-            // If the + button is pressed, increase the volume.
             if (keyboard.WasKeyJustPressed(Keys.OemPlus))
             {
                 Core.Audio.SongVolume += 0.1f;
                 Core.Audio.SoundEffectVolume += 0.1f;
             }
 
-            // If the - button was pressed, decrease the volume.
             if (keyboard.WasKeyJustPressed(Keys.OemMinus))
             {
                 Core.Audio.SongVolume -= 0.1f;

@@ -6,11 +6,7 @@ using Microsoft.Xna.Framework.Graphics;
 using Microsoft.Xna.Framework.Media;
 using MonoGameLibrary;
 using MonoGameLibrary.Graphics;
-using System;
 using System.Collections.Generic;
-using System.Linq;
-using System.Text;
-using System.Threading.Tasks;
 
 namespace First_Playable_Roman.Scenes
 {
@@ -18,24 +14,24 @@ namespace First_Playable_Roman.Scenes
     {
         public Room4(string tilemapPath) : base(tilemapPath) { }
 
-        public Room4(string tilemapPath, Player player, Vector2 playerPosition, int score = 0) : base(tilemapPath, player, playerPosition, score) { }
+        public Room4(string tilemapPath, Player player, Vector2 playerPosition, int score = 0, bool isCleared = false)
+            : base(tilemapPath, player, playerPosition, score, isCleared) {}
 
-        // Defines the tilemap to draw.
         private Tilemap _tilemap;
-
         private Song _themeSong;
-
-        // The SpriteFont Description used to draw text.
         private SpriteFont _font;
 
-        protected override void InitializeItems()
+        protected override int GetEnemyKillGoal() => 12;
+
+        protected override List<int> GetObstacleTileIDs()
         {
-            // Items now drop from enemies
+            return new List<int> { 07 };
         }
+
+        protected override void InitializeItems() { }
 
         protected override void InitializeEnemies()
         {
-            // Calculate center of the room for turret placement
             int centerX = (int)(_tilemap.TileWidth * _tilemap.Columns * 0.5f);
             int centerY = (int)(_tilemap.TileHeight * _tilemap.Rows * 0.5f);
 
@@ -53,15 +49,20 @@ namespace First_Playable_Roman.Scenes
                 return;
 
             float upThreshold = 50;
+            float rightThreshold = Core.GraphicsDevice.Viewport.Width - 50;
+
+            // Top → Room2 (already cleared to reach Room4)
             if (_player._position.Y < upThreshold)
             {
-                Vector2 newPosition = new Vector2(
-                    _player._position.X,
-                    Core.GraphicsDevice.Viewport.Height - 100
-                );
+                Vector2 newPosition = new Vector2(_player._position.X, Core.GraphicsDevice.Viewport.Height - 100);
+                Core.ChangeScene(new Room2("images/room2-definition.xml", _player, newPosition, _score, true));
+            }
 
-                // Switch to Room2
-                Core.ChangeScene(new Room2("images/room2-definition.xml", _player, newPosition, _score));
+            // Right → Room5
+            if (_player._position.X > rightThreshold)
+            {
+                Vector2 newPosition = new Vector2(100, _player._position.Y);
+                Core.ChangeScene(new Room5("images/room5-definition.xml", _player, newPosition, _score, false));
             }
         }
 
@@ -72,17 +73,12 @@ namespace First_Playable_Roman.Scenes
             _tilemap = Tilemap.FromFile(Content, "images/room4-definition.xml");
             _tilemap.Scale = new Vector2(4.0f, 4.0f);
 
-            // Load the background music
             _themeSong = Content.Load<Song>("audio/backgroundMusic");
-
-            // Load the font
             _font = Content.Load<SpriteFont>("fonts/04B_30");
         }
 
         public override void Initialize()
         {
-            // TODO: Add your initialization logic here
-
             base.Initialize();
         }
 

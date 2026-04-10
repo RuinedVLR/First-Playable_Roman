@@ -14,7 +14,7 @@ namespace First_Playable_Roman.Scripts
         public float Rotation { get; private set; }
         public bool IsAiming { get; private set; }
         public bool CanShoot => _reloadTimer <= 0f;
-        
+
         private Sprite _bowSprite;
         private Vector2 _offset;
         private float _reloadTimer;
@@ -50,7 +50,7 @@ namespace First_Playable_Roman.Scripts
             IsAiming = false;
         }
 
-        // Update aim to point towards the closest enemy
+        // Update aim to point towards the closest active enemy
         public void UpdateAim(Vector2 playerPosition, List<Enemy> enemies)
         {
             if (enemies == null || enemies.Count == 0)
@@ -62,8 +62,10 @@ namespace First_Playable_Roman.Scripts
 
             foreach (Enemy enemy in enemies)
             {
-                if(enemy is TurretStrategy)
+                // Skip turrets and inactive (dead) enemies
+                if (enemy is TurretStrategy || !enemy.IsActive)
                     continue;
+
                 float distance = Vector2.Distance(playerPosition, enemy._position);
                 if (distance < closestDistance)
                 {
@@ -87,10 +89,10 @@ namespace First_Playable_Roman.Scripts
                 return null;
 
             _reloadTimer = ReloadTime;
-            
+
             Vector2 arrowStartPosition = playerPosition + _offset;
             Vector2 direction = new Vector2((float)Math.Cos(Rotation), (float)Math.Sin(Rotation));
-            
+
             return new Arrow(arrowStartPosition, direction, Rotation);
         }
 
@@ -113,7 +115,7 @@ namespace First_Playable_Roman.Scripts
                 _bowSprite.Region.SourceRectangle,
                 bowColor,
                 Rotation + RotationOffset,
-                new Vector2(_bowSprite.Region.Width * 0.5f, _bowSprite.Region.Height * 0.5f), // Origin at center
+                new Vector2(_bowSprite.Region.Width * 0.5f, _bowSprite.Region.Height * 0.5f),
                 _bowSprite.Scale,
                 SpriteEffects.None,
                 0f
@@ -127,7 +129,7 @@ namespace First_Playable_Roman.Scripts
         public Vector2 Velocity { get; private set; }
         public float Rotation { get; private set; }
         public bool IsActive { get; set; }
-        
+
         private const float Speed = 16f;
         private Sprite _arrowSprite;
         private const float RotationOffset = MathHelper.PiOver2;
@@ -156,9 +158,7 @@ namespace First_Playable_Roman.Scripts
         public Rectangle GetBounds()
         {
             if (_arrowSprite == null)
-            {
                 return new Rectangle((int)Position.X, (int)Position.Y, 32, 32);
-            }
 
             int width = 32;
             int height = 32;

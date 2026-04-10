@@ -1,8 +1,10 @@
 ﻿using MonoGameLibrary;
+using MonoGameLibrary.Graphics;
 using First_Playable_Roman.Scenes;
 using Microsoft.Xna.Framework;
 using Microsoft.Xna.Framework.Graphics;
 using System.Collections.Generic;
+using System;
 
 namespace First_Playable_Roman.Scripts.Movements
 {
@@ -23,6 +25,8 @@ namespace First_Playable_Roman.Scripts.Movements
         private float _shootTimer;
         private const float ShootInterval = 1.0f; // 1 second between shots
 
+        private Sprite _projectileSprite;
+
         public List<TurretProjectile> Projectiles { get; private set; }
 
         public TurretStrategy(int xPos, int yPos, Room room) : base(9999, xPos, yPos, 0, room)
@@ -31,6 +35,11 @@ namespace First_Playable_Roman.Scripts.Movements
             _shootTimer = ShootInterval;
             Projectiles = new List<TurretProjectile>();
             IsShooting = false;
+        }
+
+        public void SetProjectileSprite(Sprite sprite)
+        {
+            _projectileSprite = sprite;
         }
 
         public override Vector2 Move()
@@ -72,7 +81,7 @@ namespace First_Playable_Roman.Scripts.Movements
 
             // Create projectile in the current direction
             Vector2 direction = ShootDirections[_currentDirection];
-            Projectiles.Add(new TurretProjectile(fireOrigin, direction));
+            Projectiles.Add(new TurretProjectile(fireOrigin, direction, _projectileSprite));
 
             // Cycle to the next direction
             _currentDirection = (_currentDirection + 1) % ShootDirections.Length;
@@ -122,14 +131,20 @@ namespace First_Playable_Roman.Scripts.Movements
     {
         public Vector2 Position { get; private set; }
         public Vector2 Velocity { get; private set; }
+        public float Rotation { get; private set; }
 
         private const float Speed = 4f;
-        private const int Radius = 6;
+        private const int Radius = 10;
+        private const float RotationOffset = MathHelper.PiOver2;
 
-        public TurretProjectile(Vector2 startPosition, Vector2 direction)
+        private Sprite _sprite;
+
+        public TurretProjectile(Vector2 startPosition, Vector2 direction, Sprite sprite = null)
         {
             Position = startPosition;
             Velocity = direction * Speed;
+            Rotation = MathF.Atan2(direction.Y, direction.X);
+            _sprite = sprite;
         }
 
         public void Update()
@@ -161,7 +176,24 @@ namespace First_Playable_Roman.Scripts.Movements
 
         public void Draw(SpriteBatch spriteBatch)
         {
-            Core.DrawRectangleOutline(GetBounds(), Color.OrangeRed);
+            if (_sprite != null)
+            {
+                spriteBatch.Draw(
+                    _sprite.Region.Texture,
+                    Position,
+                    _sprite.Region.SourceRectangle,
+                    Color.White,
+                    Rotation + RotationOffset,
+                    new Vector2(_sprite.Region.Width * 0.5f, _sprite.Region.Height * 0.5f),
+                    _sprite.Scale,
+                    SpriteEffects.None,
+                    0f
+                );
+            }
+            else
+            {
+                Core.DrawRectangleOutline(GetBounds(), Color.OrangeRed);
+            }
         }
     }
 }

@@ -21,11 +21,9 @@ namespace First_Playable_Roman.Scripts
         protected AnimatedSprite _animatedSprite;
         protected Sprite _staticSprite;
 
-        // Width of the enemy sprite
         public float SpriteWidth =>
             _animatedSprite?.Width ?? _staticSprite?.Width ?? 64f;
 
-        // Height of the enemy sprite
         public float SpriteHeight =>
             _animatedSprite?.Height ?? _staticSprite?.Height ?? 64f;
 
@@ -52,23 +50,23 @@ namespace First_Playable_Roman.Scripts
                 return;
 
             if (_animatedSprite != null)
-            {
                 _animatedSprite.Draw(spriteBatch, _position);
-            }
             else if (_staticSprite != null)
-            {
                 _staticSprite.Draw(spriteBatch, _position);
-            }
         }
 
         public void TakeDamage(int damage)
         {
             Health.TakeDamage(damage);
-            
-            // Check if enemy died
+
             if (Health.CurrentHealth <= 0)
             {
                 _rooms.AddScore(100);
+
+                // Notify the room only for non-turret enemies
+                if (!(this is TurretStrategy))
+                    _rooms.OnEnemyKilled();
+
                 IsActive = false;
             }
         }
@@ -80,7 +78,6 @@ namespace First_Playable_Roman.Scripts
 
         public void Respawn(Rectangle roomBounds, float tileWidth, float tileHeight, int columns, int rows)
         {
-            // Respawn enemy inside playable area leaving exactly one tile margin on each edge.
             int tileWScaled = (int)Math.Max(1, Math.Round(tileWidth));
             int tileHScaled = (int)Math.Max(1, Math.Round(tileHeight));
 
@@ -90,11 +87,9 @@ namespace First_Playable_Roman.Scripts
             int column = Random.Shared.Next(0, innerCols);
             int row = Random.Shared.Next(0, innerRows);
 
-            // Position on tile grid inside playable area (roomX + column * tileWScaled)
             Vector2 newPosition = new Vector2(roomBounds.Left + column * tileWScaled, roomBounds.Top + row * tileHScaled);
             _position = newPosition;
-            
-            // Restore health and reactivate
+
             Health.Heal(_maxHealth);
             IsActive = true;
         }
@@ -103,12 +98,8 @@ namespace First_Playable_Roman.Scripts
         {
             Vector2 newPosition = _position + velocity;
 
-            float halfWidth = width * 0.5f;
-            float halfHeight = height * 0.5f;
-
             Vector2 normal = Vector2.Zero;
 
-            // Clamp enemy position within room bounds
             if (newPosition.X < roomBounds.Left)
             {
                 newPosition.X = roomBounds.Left;
@@ -131,7 +122,6 @@ namespace First_Playable_Roman.Scripts
                 normal.Y = -1f;
             }
 
-            // Check collision with obstacles
             Rectangle enemyRect = new Rectangle(
                 (int)newPosition.X,
                 (int)newPosition.Y,
@@ -145,45 +135,41 @@ namespace First_Playable_Roman.Scripts
                 {
                     if (enemyRect.Intersects(obstacle))
                     {
-                        // Calculate collision normal based on overlap
                         int overlapLeft = enemyRect.Right - obstacle.Left;
                         int overlapRight = obstacle.Right - enemyRect.Left;
                         int overlapTop = enemyRect.Bottom - obstacle.Top;
                         int overlapBottom = obstacle.Bottom - enemyRect.Top;
 
-                        // Find the smallest overlap to determine the collision direction
                         int minOverlap = Math.Min(Math.Min(overlapLeft, overlapRight), Math.Min(overlapTop, overlapBottom));
 
                         if (minOverlap == overlapLeft)
                         {
-                            normal.X = -1f; // Push left
+                            normal.X = -1f;
                             newPosition.X = obstacle.Left - width;
                         }
                         else if (minOverlap == overlapRight)
                         {
-                            normal.X = 1f; // Push right
+                            normal.X = 1f;
                             newPosition.X = obstacle.Right;
                         }
                         else if (minOverlap == overlapTop)
                         {
-                            normal.Y = -1f; // Push up
+                            normal.Y = -1f;
                             newPosition.Y = obstacle.Top - height;
                         }
                         else if (minOverlap == overlapBottom)
                         {
-                            normal.Y = 1f; // Push down
+                            normal.Y = 1f;
                             newPosition.Y = obstacle.Bottom;
                         }
 
-                        break; // Handle one collision at a time
+                        break;
                     }
                 }
             }
 
-            // Update position
             _position = newPosition;
 
-            // Return the reflected velocity if there was a collision
             if (normal != Vector2.Zero)
             {
                 normal.Normalize();
@@ -204,9 +190,6 @@ namespace First_Playable_Roman.Scripts
 
         public abstract Vector2 Move();
 
-        public Room GetRoom()
-        {
-            return _rooms;
-        }
+        public Room GetRoom() => _rooms;
     }
 }
