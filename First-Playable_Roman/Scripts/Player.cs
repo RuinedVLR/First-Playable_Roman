@@ -68,9 +68,9 @@ namespace First_Playable_Roman.Scripts
             }
         }
 
-        public void EquipBow(Sprite bowSprite)
+        public void EquipBow(Sprite bowSprite, SoundEffect shootEffect)
         {
-            Bow = new BowSystem(bowSprite);
+            Bow = new BowSystem(bowSprite, shootEffect);
             HasBow = true;
         }
 
@@ -247,10 +247,22 @@ namespace First_Playable_Roman.Scripts
                             room?.SpawnEnemyDrop(enemyDeathPos);
                         }
 
-                        // Only respawn after knife kill if the room is not yet cleared
-                        if (!isCleared)
+                        // Re-read isCleared AFTER TakeDamage, because OnEnemyKilled may have
+                        // just set it to true — in that case the enemy must NOT respawn.
+                        bool roomNowCleared = enemies[i].GetRoom()?.IsCleared ?? isCleared;
+
+                        if (!roomNowCleared)
                         {
-                            enemies[i].Respawn(roomBounds, tilemap.TileWidth, tilemap.TileHeight, tilemap.Columns, tilemap.Rows);
+                            Room room = enemies[i].GetRoom();
+                            enemies[i].Respawn(
+                                roomBounds,
+                                tilemap.TileWidth,
+                                tilemap.TileHeight,
+                                tilemap.Columns,
+                                tilemap.Rows,
+                                obstacles,
+                                playerPosition
+                            );
                             slimePositions[i] = enemies[i]._position;
                             slimeVelocity[i] = enemies[i].Move();
                         }

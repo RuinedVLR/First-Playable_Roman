@@ -51,7 +51,11 @@ namespace First_Playable_Roman.Scripts.Movements
         public void Update(GameTime gameTime)
         {
             if (!IsActive)
+            {
+                // Clear all in-flight projectiles when the turret is deactivated
+                Projectiles.Clear();
                 return;
+            }
 
             // Update shoot timer
             _shootTimer -= (float)gameTime.ElapsedGameTime.TotalSeconds;
@@ -64,9 +68,7 @@ namespace First_Playable_Roman.Scripts.Movements
 
             // Update all projectiles
             for (int i = Projectiles.Count - 1; i >= 0; i--)
-            {
                 Projectiles[i].Update();
-            }
         }
 
         private void Shoot()
@@ -93,9 +95,7 @@ namespace First_Playable_Roman.Scripts.Movements
             for (int i = Projectiles.Count - 1; i >= 0; i--)
             {
                 if (Projectiles[i].IsOutOfBounds(roomBounds))
-                {
                     Projectiles.RemoveAt(i);
-                }
             }
         }
 
@@ -116,14 +116,13 @@ namespace First_Playable_Roman.Scripts.Movements
 
         public override void Draw(SpriteBatch spriteBatch)
         {
-            // Draw the turret sprite
-            base.Draw(spriteBatch);
+            // Draw the turret sprite only while active (skips base.Draw when inactive)
+            if (IsActive)
+                base.Draw(spriteBatch);
 
-            // Draw projectiles
+            // Always draw in-flight projectiles regardless of turret active state
             foreach (TurretProjectile projectile in Projectiles)
-            {
                 projectile.Draw(spriteBatch);
-            }
         }
     }
 

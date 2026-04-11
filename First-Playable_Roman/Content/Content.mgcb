@@ -25,11 +25,29 @@
 /processorParam:Quality=Best
 /build:audio/bounceSoundEffect.wav
 
+#begin audio/bowShoot.wav
+/importer:WavImporter
+/processor:SoundEffectProcessor
+/processorParam:Quality=Best
+/build:audio/bowShoot.wav
+
+#begin audio/deathSoundEffect.wav
+/importer:WavImporter
+/processor:SoundEffectProcessor
+/processorParam:Quality=Best
+/build:audio/deathSoundEffect.wav
+
 #begin audio/pixelhitsound.wav
 /importer:WavImporter
 /processor:SoundEffectProcessor
 /processorParam:Quality=Best
 /build:audio/pixelhitsound.wav
+
+#begin audio/roomClearSoundEffect.wav
+/importer:WavImporter
+/processor:SoundEffectProcessor
+/processorParam:Quality=Best
+/build:audio/roomClearSoundEffect.wav
 
 #begin fonts/04B_30_5x.spritefont
 /importer:FontDescriptionImporter

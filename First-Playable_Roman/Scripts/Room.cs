@@ -57,6 +57,9 @@ namespace First_Playable_Roman.Scenes
         private Rectangle _roomBounds;
         private SoundEffect _hitSoundEffect;
         private SoundEffect _bounceSoundEffect;
+        private SoundEffect _roomClearEffect;
+        private SoundEffect _bowShootEffect;
+        private SoundEffect _enemyKillEffect;
 
         private Song _themeSong;
 
@@ -99,6 +102,15 @@ namespace First_Playable_Roman.Scenes
         private bool _keyHasDropped;
         private int _initialScore;
 
+        // Total number of rooms in the game.
+        private const int TotalRooms = 5;
+
+        // Global counter of how many rooms have been cleared across the whole run.
+        public static int ClearedRoomsCount = 0;
+
+        // True when every room has been cleared and the key should be available.
+        public static bool AllRoomsCleared => ClearedRoomsCount >= TotalRooms;
+
         public Room(string tilemapPath)
         {
             _tilemapPath = tilemapPath;
@@ -136,9 +148,16 @@ namespace First_Playable_Roman.Scenes
             {
                 _enemyKillsRemaining--;
 
+                Core.Audio.PlaySoundEffect(_enemyKillEffect);
+
                 if (_enemyKillsRemaining == 0)
                 {
                     _isCleared = true;
+
+                    Core.Audio.PlaySoundEffect(_roomClearEffect);
+
+                    // Track how many unique rooms have been cleared globally
+                    ClearedRoomsCount++;
 
                     if (_enemies != null)
                     {
@@ -148,22 +167,29 @@ namespace First_Playable_Roman.Scenes
 
                     for (int i = 0; i < _slimeVelocity.Count; i++)
                         _slimeVelocity[i] = Vector2.Zero;
+
+                    // Spawn key in the center of the room when all rooms are cleared
+                    if (AllRoomsCleared && !_keyHasDropped)
+                    {
+                        Vector2 center = new Vector2(
+                            _roomBounds.Left + _roomBounds.Width * 0.5f,
+                            _roomBounds.Top + _roomBounds.Height * 0.5f
+                        );
+                        _key = new KeyItem(center, _keySprite);
+                        _keyHasDropped = true;
+                    }
                 }
             }
         }
 
         public void SpawnEnemyDrop(Vector2 dropPosition)
         {
-            if (_score >= 1000 && !_keyHasDropped)
-            {
-                _key = new KeyItem(dropPosition, _keySprite);
-                _keyHasDropped = true;
-            }
+            double roll = Random.Shared.NextDouble();
 
-            if (Random.Shared.NextDouble() < 0.30 && Random.Shared.NextDouble() > 0.10)
+            // 10% knife, 10% heart, mutually exclusive
+            if (roll < 0.10)
                 _knives.Add(new KnifeItem(dropPosition, _knifeSprite));
-
-            if (Random.Shared.NextDouble() < 0.10)
+            else if (roll < 0.20)
                 _hearts.Add(new HeartItem(dropPosition, _heartSprite, 30));
         }
 
@@ -193,6 +219,10 @@ namespace First_Playable_Roman.Scenes
 
             _bounceSoundEffect = Content.Load<SoundEffect>("audio/bounceSoundEffect");
             _hitSoundEffect = Content.Load<SoundEffect>("audio/pixelhitsound");
+            _roomClearEffect = Content.Load<SoundEffect>("audio/roomClearSoundEffect");
+            _bowShootEffect = Content.Load<SoundEffect>("audio/bowShoot");
+            _enemyKillEffect = Content.Load<SoundEffect>("audio/deathSoundEffect");
+
             _themeSong = Content.Load<Song>("audio/backgroundMusic");
             _font = Content.Load<SpriteFont>("fonts/04B_30");
         }
@@ -231,7 +261,7 @@ namespace First_Playable_Roman.Scenes
             _arrows = new List<Arrow>();
             _wasSpacePressed = false;
 
-            Core.Audio.SongVolume = 0.3f;
+            Core.Audio.SongVolume = 0.1f;
 
             int[] tilesInts = _tilemap.GetTilesIDs();
 
@@ -261,7 +291,7 @@ namespace First_Playable_Roman.Scenes
                 _player._position = _playerPosition;
 
                 if (_player.HasBow)
-                    _player.EquipBow(_bowSprite);
+                    _player.EquipBow(_bowSprite, _bowShootEffect);
 
                 _score = _initialScore;
                 _hasExistingPlayer = false;
@@ -270,11 +300,14 @@ namespace First_Playable_Roman.Scenes
             {
                 _score = 0;
 
+                // New game: reset the global cleared rooms counter
+                ClearedRoomsCount = 0;
+
                 Vector2 safePlayerPosition = FindSafePosition(_roomBounds, _obstacles, (int)_playerSprite.Width, (int)_playerSprite.Height);
 
                 _player = new Player("Player", 100, (int)safePlayerPosition.X, (int)safePlayerPosition.Y, 1, _playerSprite);
                 _playerPosition = new Vector2(_player._position.X, _player._position.Y);
-                _player.EquipBow(_bowSprite);
+                _player.EquipBow(_bowSprite, _bowShootEffect);
             }
 
             _slimePositions = new List<Vector2>();
@@ -311,12 +344,12 @@ namespace First_Playable_Roman.Scenes
                     else if (_enemies[i] is ChaserStrategy)
                     {
                         _enemies[i].SetAnimatedSprite(_chaserSprite);
-                        _enemies[i].Respawn(_roomBounds, _tilemap.TileWidth, _tilemap.TileHeight, _tilemap.Columns, _tilemap.Rows);
+                        _enemies[i].Respawn(_roomBounds, _tilemap.TileWidth, _tilemap.TileHeight, _tilemap.Columns, _tilemap.Rows, _obstacles, _playerPosition);
                     }
                     else
                     {
                         _enemies[i].SetAnimatedSprite(_slimeSprite);
-                        _enemies[i].Respawn(_roomBounds, _tilemap.TileWidth, _tilemap.TileHeight, _tilemap.Columns, _tilemap.Rows);
+                        _enemies[i].Respawn(_roomBounds, _tilemap.TileWidth, _tilemap.TileHeight, _tilemap.Columns, _tilemap.Rows, _obstacles, _playerPosition);
                     }
 
                     _slimePositions.Add(new Vector2(_enemies[i]._position.X, _enemies[i]._position.Y));
@@ -439,10 +472,10 @@ namespace First_Playable_Roman.Scenes
 
                     if (isSpaceDown)
                         _player.Bow.StartAiming();
-                    else if (_player.Bow.IsAiming)
+                    else
                         _player.Bow.StopAiming();
 
-                    if (_wasSpacePressed && !isSpaceDown && _player.Bow.CanShoot)
+                    if (_player.Bow.HasPendingShot)
                     {
                         Arrow newArrow = _player.Bow.ShootArrow(_player._position);
                         if (newArrow != null)
@@ -451,8 +484,6 @@ namespace First_Playable_Roman.Scenes
                             _arrows.Add(newArrow);
                         }
                     }
-
-                    _wasSpacePressed = isSpaceDown;
                 }
             }
 
@@ -476,7 +507,7 @@ namespace First_Playable_Roman.Scenes
                             // Only respawn if room is not yet cleared
                             if (!_isCleared)
                             {
-                                _enemies[j].Respawn(_roomBounds, _tilemap.TileWidth, _tilemap.TileHeight, _tilemap.Columns, _tilemap.Rows);
+                                _enemies[j].Respawn(_roomBounds, _tilemap.TileWidth, _tilemap.TileHeight, _tilemap.Columns, _tilemap.Rows, _obstacles, _playerPosition);
                                 _slimePositions[j] = _enemies[j]._position;
                                 _slimeVelocity[j] = _enemies[j].Move();
                             }
@@ -501,17 +532,22 @@ namespace First_Playable_Roman.Scenes
 
                 foreach (Enemy enemy in _enemies)
                 {
-                    if (enemy is TurretStrategy turret && turret.IsActive)
+                    if (enemy is TurretStrategy turret)
                     {
+                        // Always update the turret so it can clear projectiles when inactive
                         turret.Update(gameTime);
-                        turret.CleanupProjectiles(_roomBounds);
 
-                        if (turret.CheckProjectileHit(playerBounds))
+                        if (turret.IsActive)
                         {
-                            _player.TakeDamage(15);
+                            turret.CleanupProjectiles(_roomBounds);
 
-                            if (_hitSoundEffect != null)
-                                Core.Audio.PlaySoundEffect(_hitSoundEffect);
+                            if (turret.CheckProjectileHit(playerBounds))
+                            {
+                                _player.TakeDamage(15);
+
+                                if (_hitSoundEffect != null)
+                                    Core.Audio.PlaySoundEffect(_hitSoundEffect);
+                            }
                         }
                     }
                 }

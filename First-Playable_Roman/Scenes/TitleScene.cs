@@ -12,6 +12,16 @@ namespace First_Playable_Roman.Scenes
         private const string SLASHER_TEXT = "Slasher";
         private const string PRESS_ENTER_TEXT = "Press Enter To Start";
 
+        private static readonly string[] TUTORIAL_LINES =
+        [
+            "WASD - Move",
+            "Shift - Sprint",
+            "Space - Hold to Shoot",
+            "Enemies drop items - 10% chance for Heart, 10% chance for Knife!",
+            "Hearts restore 30 HP, Knives blockes attack and can defeat enemies!",
+            "Defeat enemies to progress through the dungeon!"
+        ];
+
         // The font to use to render normal text.
         private SpriteFont _font;
 
@@ -35,6 +45,9 @@ namespace First_Playable_Roman.Scenes
 
         // The origin to set for the press enter text when drawing it.
         private Vector2 _pressEnterOrigin;
+
+        // The bottom-left position for the first tutorial line.
+        private Vector2 _tutorialStartPos;
 
         // The texture used for the background pattern.
         private Texture2D _backgroundPattern;
@@ -70,8 +83,14 @@ namespace First_Playable_Roman.Scenes
 
             // Set the position and origin for the press enter text.
             size = _font.MeasureString(PRESS_ENTER_TEXT);
-            _pressEnterPos = new Vector2(640, 620);
+            _pressEnterPos = new Vector2(640, 500);
             _pressEnterOrigin = size * 0.5f;
+
+            // Position the tutorial block in the bottom-left corner with padding.
+            float lineHeight = _font.MeasureString("W").Y + 6;
+            float totalHeight = lineHeight * TUTORIAL_LINES.Length;
+            int screenHeight = Core.GraphicsDevice.PresentationParameters.BackBufferHeight;
+            _tutorialStartPos = new Vector2(20, screenHeight - totalHeight - 20);
 
             // Initialize the offset of the background pattern at zero.
             _backgroundOffset = Vector2.Zero;
@@ -144,6 +163,15 @@ namespace First_Playable_Roman.Scenes
 
             // Draw the press enter text.
             Core.SpriteBatch.DrawString(_font, PRESS_ENTER_TEXT, _pressEnterPos, Color.White, 0.0f, _pressEnterOrigin, 1.0f, SpriteEffects.None, 0.0f);
+
+            // Draw tutorial lines in the bottom-left corner.
+            float lineHeight = _font.MeasureString("W").Y + 6;
+            for (int i = 0; i < TUTORIAL_LINES.Length; i++)
+            {
+                Vector2 linePos = _tutorialStartPos + new Vector2(0, i * lineHeight);
+                Core.SpriteBatch.DrawString(_font, TUTORIAL_LINES[i], linePos + new Vector2(2, 2), dropShadowColor, 0.0f, Vector2.Zero, 0.75f, SpriteEffects.None, 0.0f);
+                Core.SpriteBatch.DrawString(_font, TUTORIAL_LINES[i], linePos, Color.White * 0.85f, 0.0f, Vector2.Zero, 0.75f, SpriteEffects.None, 0.0f);
+            }
 
             // Always end the sprite batch when finished.
             Core.SpriteBatch.End();

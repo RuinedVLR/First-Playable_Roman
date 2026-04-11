@@ -27,19 +27,23 @@ namespace First_Playable_Roman.Scenes
         // Maze theme: only solid walls as obstacles
         protected override List<int> GetObstacleTileIDs()
         {
-            return new List<int> { 08 };
+            return new List<int> { 08, 59, 69, 70, 90 };
         }
 
         protected override void InitializeItems() { }
 
         protected override void InitializeEnemies()
         {
+            int centerX = (int)(_tilemap.TileWidth * _tilemap.Columns * 0.5f);
+            int centerY = (int)(_tilemap.TileHeight * _tilemap.Rows * 0.5f);
+
             _enemies = new List<Enemy>
             {
                 new LurkingStrategy(0, 0, 5, this),
                 new LurkingStrategy(0, 0, 5, this),
                 new ChaserStrategy(0, 0, 3, 200f, this),
                 new ChaserStrategy(0, 0, 3, 200f, this),
+                new TurretStrategy(centerX, centerY, this),
             };
         }
 

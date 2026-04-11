@@ -25,7 +25,7 @@ namespace First_Playable_Roman.Scenes
 
         protected override List<int> GetObstacleTileIDs()
         {
-            return new List<int> { 03, 04, 07, 08, 11, 49, 50, 53, 54, 59, 63, 64 };
+            return new List<int> { 03, 04, 07, 08, 11, 49, 50, 53, 54, 59, 63, 64, 68, 70, 85 };
         }
 
         protected override void InitializeItems() { }

@@ -76,7 +76,15 @@ namespace First_Playable_Roman.Scripts
             player.TakeDamage(Health.CurrentHealth);
         }
 
-        public void Respawn(Rectangle roomBounds, float tileWidth, float tileHeight, int columns, int rows)
+        public void Respawn(
+            Rectangle roomBounds,
+            float tileWidth,
+            float tileHeight,
+            int columns,
+            int rows,
+            List<Rectangle> obstacles = null,
+            Vector2? playerPosition = null,
+            float minDistanceFromPlayer = 200f)
         {
             int tileWScaled = (int)Math.Max(1, Math.Round(tileWidth));
             int tileHScaled = (int)Math.Max(1, Math.Round(tileHeight));
@@ -84,12 +92,59 @@ namespace First_Playable_Roman.Scripts
             int innerCols = Math.Max(1, columns - 2);
             int innerRows = Math.Max(1, rows - 2);
 
-            int column = Random.Shared.Next(0, innerCols);
-            int row = Random.Shared.Next(0, innerRows);
+            const int maxAttempts = 50;
 
-            Vector2 newPosition = new Vector2(roomBounds.Left + column * tileWScaled, roomBounds.Top + row * tileHScaled);
-            _position = newPosition;
+            for (int attempt = 0; attempt < maxAttempts; attempt++)
+            {
+                int column = Random.Shared.Next(0, innerCols);
+                int row = Random.Shared.Next(0, innerRows);
 
+                Vector2 candidatePos = new Vector2(
+                    roomBounds.Left + column * tileWScaled,
+                    roomBounds.Top + row * tileHScaled
+                );
+
+                // Check minimum distance from player
+                if (playerPosition.HasValue)
+                {
+                    float distance = Vector2.Distance(candidatePos, playerPosition.Value);
+                    if (distance < minDistanceFromPlayer)
+                        continue;
+                }
+
+                // Check overlap with obstacles
+                if (obstacles != null)
+                {
+                    Rectangle enemyRect = new Rectangle(
+                        (int)candidatePos.X,
+                        (int)candidatePos.Y,
+                        (int)SpriteWidth,
+                        (int)SpriteHeight
+                    );
+
+                    bool overlapsObstacle = false;
+                    foreach (Rectangle obstacle in obstacles)
+                    {
+                        if (enemyRect.Intersects(obstacle))
+                        {
+                            overlapsObstacle = true;
+                            break;
+                        }
+                    }
+
+                    if (overlapsObstacle)
+                        continue;
+                }
+
+                // Safe position found
+                _position = candidatePos;
+                Health.Heal(_maxHealth);
+                IsActive = true;
+                return;
+            }
+
+            // Fallback: place at a corner away from the player if no safe spot found
+            _position = new Vector2(roomBounds.Left + tileWScaled, roomBounds.Top + tileHScaled);
             Health.Heal(_maxHealth);
             IsActive = true;
         }

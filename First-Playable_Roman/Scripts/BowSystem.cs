@@ -1,5 +1,6 @@
 ﻿using First_Playable_Roman.Scripts.Movements;
 using Microsoft.Xna.Framework;
+using Microsoft.Xna.Framework.Audio;
 using Microsoft.Xna.Framework.Graphics;
 using MonoGameLibrary;
 using MonoGameLibrary.Graphics;
@@ -12,42 +13,78 @@ namespace First_Playable_Roman.Scripts
     {
         public Vector2 Position { get; set; }
         public float Rotation { get; private set; }
+
+        // True while Space is held and charging
         public bool IsAiming { get; private set; }
-        public bool CanShoot => _reloadTimer <= 0f;
+
+        // Charge progress from 0.0 to 1.0
+        public float ChargeProgress => Math.Min(_chargeTimer / ChargeTime, 1f);
+
+        // True when fully charged
+        public bool IsFullyCharged => _chargeTimer >= ChargeTime;
+
+        // True if an auto-shot was triggered this frame
+        public bool HasPendingShot => _pendingShot;
 
         private Sprite _bowSprite;
+        private SoundEffect _shootEffect;
         private Vector2 _offset;
-        private float _reloadTimer;
-        private const float ReloadTime = 1.0f;
-        private const float RotationOffset = MathHelper.PiOver2; // offset to align bow sprite
 
-        public BowSystem(Sprite bowSprite)
+        private float _chargeTimer;
+        private const float ChargeTime = 1.0f;
+        private const float RotationOffset = MathHelper.PiOver2;
+
+        private bool _pendingShot;
+
+        // True after a shot fires — blocks charging until Space is released
+        private bool _waitingForRelease;
+
+        public BowSystem(Sprite bowSprite, SoundEffect shootEffect)
         {
             _bowSprite = bowSprite;
+            _shootEffect = shootEffect;
             _offset = new Vector2(32, 32);
             Rotation = 0f;
             IsAiming = false;
-            _reloadTimer = 0f;
+            _chargeTimer = 0f;
+            _pendingShot = false;
+            _waitingForRelease = false;
         }
 
         public void Update(GameTime gameTime)
         {
-            if (_reloadTimer > 0)
+            _pendingShot = false;
+
+            if (IsAiming)
             {
-                _reloadTimer -= (float)gameTime.ElapsedGameTime.TotalSeconds;
-                if (_reloadTimer < 0)
-                    _reloadTimer = 0;
+                _chargeTimer += (float)gameTime.ElapsedGameTime.TotalSeconds;
+
+                if (_chargeTimer >= ChargeTime)
+                {
+                    _pendingShot = true;
+                    _chargeTimer = 0f;
+                    IsAiming = false;
+                    _waitingForRelease = true;
+                }
             }
         }
 
+        // Called every frame when Space is held down
         public void StartAiming()
         {
+            // Don't start charging until Space was released after last shot
+            if (_waitingForRelease)
+                return;
+
             IsAiming = true;
         }
 
+        // Called every frame when Space is NOT held — always call this when Space is up
         public void StopAiming()
         {
             IsAiming = false;
+            _chargeTimer = 0f;
+            _waitingForRelease = false;  // Space released — ready for next charge
         }
 
         // Update aim to point towards the closest active enemy
@@ -56,13 +93,11 @@ namespace First_Playable_Roman.Scripts
             if (enemies == null || enemies.Count == 0)
                 return;
 
-            // Closest enemy detection
             Enemy closestEnemy = null;
             float closestDistance = float.MaxValue;
 
             foreach (Enemy enemy in enemies)
             {
-                // Skip turrets and inactive (dead) enemies
                 if (enemy is TurretStrategy || !enemy.IsActive)
                     continue;
 
@@ -76,7 +111,6 @@ namespace First_Playable_Roman.Scripts
 
             if (closestEnemy != null)
             {
-                // Calculate direction to enemy
                 Vector2 direction = closestEnemy._position - playerPosition;
                 Rotation = (float)Math.Atan2(direction.Y, direction.X);
             }
@@ -85,10 +119,8 @@ namespace First_Playable_Roman.Scripts
         // Creates an arrow in the aiming direction
         public Arrow ShootArrow(Vector2 playerPosition)
         {
-            if (!CanShoot)
-                return null;
-
-            _reloadTimer = ReloadTime;
+            if (_shootEffect != null)
+                Core.Audio.PlaySoundEffect(_shootEffect);
 
             Vector2 arrowStartPosition = playerPosition + _offset;
             Vector2 direction = new Vector2((float)Math.Cos(Rotation), (float)Math.Sin(Rotation));
@@ -98,17 +130,15 @@ namespace First_Playable_Roman.Scripts
 
         public void Draw(SpriteBatch spriteBatch, Vector2 playerPosition)
         {
+            // Show bow only while actively charging
             if (!IsAiming || _bowSprite == null)
                 return;
 
             Position = playerPosition + _offset;
-            
-            System.Diagnostics.Debug.WriteLine($"Drawing bow at: {Position}, Player at: {playerPosition}, Offset: {_offset}");
 
-            // Change bow color based on whether it can shoot
-            Color bowColor = CanShoot ? Color.White : Color.Gray;
+            // Interpolate color White → Yellow as charge fills up
+            Color bowColor = Color.Lerp(Color.White, Color.Yellow, ChargeProgress);
 
-            // Draw the bow with rotation
             spriteBatch.Draw(
                 _bowSprite.Region.Texture,
                 Position,
@@ -171,7 +201,6 @@ namespace First_Playable_Roman.Scripts
             );
         }
 
-        // Enemy collision detection
         public bool CheckCollision(Enemy enemy)
         {
             if (!IsActive || enemy is TurretStrategy)
@@ -189,7 +218,6 @@ namespace First_Playable_Roman.Scripts
             return arrowRect.Intersects(enemyRect);
         }
 
-        // Bounds detection
         public bool IsOutOfBounds(Rectangle roomBounds)
         {
             return Position.X < roomBounds.Left || Position.X > roomBounds.Right ||
