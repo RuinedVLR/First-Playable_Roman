@@ -32,8 +32,8 @@ namespace First_Playable_Roman.Scenes
         {
             _enemies = new List<Enemy>
             {
-                new LurkingStrategy(0, 0, 5, this),
-                new LurkingStrategy(0, 0, 5, this),
+                new LurkingStrategy(0, 0, GameSettings.Data.Enemies.Lurking.Speed, this),
+                new LurkingStrategy(0, 0, GameSettings.Data.Enemies.Lurking.Speed, this),
             };
         }
 

@@ -9,7 +9,7 @@ namespace First_Playable_Roman.Scripts.Strategies
         int _posX;
         int _posY;
 
-        public LurkingStrategy(int xPos, int yPos, int speed, Room room) : base(50, xPos, yPos, speed, room)
+        public LurkingStrategy(int xPos, int yPos, int speed, Room room) : base(GameSettings.Data.Enemies.Lurking.Health, xPos, yPos, speed, room)
         {
             _posX = xPos;
             _posY = yPos;

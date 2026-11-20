@@ -1,6 +1,7 @@
 ﻿using MonoGameLibrary;
 using MonoGameLibrary.Graphics;
 using First_Playable_Roman.Scenes;
+using First_Playable_Roman.Scripts;
 using Microsoft.Xna.Framework;
 using Microsoft.Xna.Framework.Graphics;
 using System.Collections.Generic;
@@ -29,7 +30,7 @@ namespace First_Playable_Roman.Scripts.Movements
 
         public List<TurretProjectile> Projectiles { get; private set; }
 
-        public TurretStrategy(int xPos, int yPos, Room room) : base(9999, xPos, yPos, 0, room)
+        public TurretStrategy(int xPos, int yPos, Room room) : base(GameSettings.Data.Enemies.Turret.Health, xPos, yPos, 0, room)
         {
             _currentDirection = 0;
             _shootTimer = ShootInterval;

@@ -1,0 +1,23 @@
+{
+  "Player": {
+    "Health": 100,
+    "Speed": 1
+  },
+  "Enemies": {
+    "Lurking": {
+      "Health": 50,
+      "Speed": 5
+    },
+    "Chaser": {
+      "Health": 75,
+      "Speed": 3,
+      "DetectionRadius": 200.0
+    },
+    "Turret": {
+      "Health": 9999
+    }
+  },
+  "Bow": {
+    "ChargeTime": 0.1
+  }
+}

@@ -305,7 +305,7 @@ namespace First_Playable_Roman.Scenes
 
                 Vector2 safePlayerPosition = FindSafePosition(_roomBounds, _obstacles, (int)_playerSprite.Width, (int)_playerSprite.Height);
 
-                _player = new Player("Player", 100, (int)safePlayerPosition.X, (int)safePlayerPosition.Y, 1, _playerSprite);
+                _player = new Player("Player", GameSettings.Data.Player.Health, (int)safePlayerPosition.X, (int)safePlayerPosition.Y, GameSettings.Data.Player.Speed, _playerSprite);
                 _playerPosition = new Vector2(_player._position.X, _player._position.Y);
                 _player.EquipBow(_bowSprite, _bowShootEffect);
             }

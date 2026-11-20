@@ -31,7 +31,7 @@ namespace First_Playable_Roman.Scripts
         private Vector2 _offset;
 
         private float _chargeTimer;
-        private const float ChargeTime = 1.0f;
+        private static float ChargeTime => GameSettings.Data.Bow.ChargeTime;
         private const float RotationOffset = MathHelper.PiOver2;
 
         private bool _pendingShot;

@@ -19,6 +19,7 @@ namespace First_Playable_Roman.Scripts
 
         protected override void Initialize()
         {
+            GameSettings.Load();
 
             base.Initialize();
 

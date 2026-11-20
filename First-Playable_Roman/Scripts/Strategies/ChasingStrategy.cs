@@ -17,7 +17,7 @@ namespace First_Playable_Roman.Scripts.Strategies
         private bool _hasTarget;
 
         public ChaserStrategy(int xPos, int yPos, int speed, float detectionRadius, Room room)
-            : base(75, xPos, yPos, speed, room)
+            : base(GameSettings.Data.Enemies.Chaser.Health, xPos, yPos, speed, room)
         {
             DetectionRadius = detectionRadius;
             IsChasing = false;

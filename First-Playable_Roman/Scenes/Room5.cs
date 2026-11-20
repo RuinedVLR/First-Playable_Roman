@@ -39,10 +39,10 @@ namespace First_Playable_Roman.Scenes
 
             _enemies = new List<Enemy>
             {
-                new LurkingStrategy(0, 0, 5, this),
-                new LurkingStrategy(0, 0, 5, this),
-                new ChaserStrategy(0, 0, 3, 200f, this),
-                new ChaserStrategy(0, 0, 3, 200f, this),
+                new LurkingStrategy(0, 0, GameSettings.Data.Enemies.Lurking.Speed, this),
+                new LurkingStrategy(0, 0, GameSettings.Data.Enemies.Lurking.Speed, this),
+                new ChaserStrategy(0, 0, GameSettings.Data.Enemies.Chaser.Speed, GameSettings.Data.Enemies.Chaser.DetectionRadius, this),
+                new ChaserStrategy(0, 0, GameSettings.Data.Enemies.Chaser.Speed, GameSettings.Data.Enemies.Chaser.DetectionRadius, this),
                 new TurretStrategy(centerX, centerY, this),
             };
         }
